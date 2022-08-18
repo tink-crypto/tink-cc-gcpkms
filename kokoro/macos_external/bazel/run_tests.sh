@@ -23,4 +23,12 @@ if [[ -n "${KOKORO_ROOT:-}" ]]; then
   use_bazel.sh "$(cat .bazelversion)"
 fi
 
+: "${TINK_BASE_DIR:=$(cd .. && pwd)}"
+
+# Check for dependencies in TINK_BASE_DIR. Any that aren't present will be
+# downloaded.
+readonly GITHUB_ORG="https://github.com/tink-crypto"
+./kokoro/testutils/fetch_git_repo_if_not_present.sh "${TINK_BASE_DIR}" \
+  "${GITHUB_ORG}/tink-cc"
+
 ./kokoro/testutils/run_bazel_tests.sh .
