@@ -1,8 +1,9 @@
 workspace(name = "tink_cc_gcpkms")
 
-local_repository(
+http_archive(
     name = "tink_cc",
-    path = "../tink_cc",
+    urls = ["https://github.com/tink-crypto/tink-cc/archive/main.zip"],
+    strip_prefix = "tink-cc-main",
 )
 
 load("@tink_cc//:tink_cc_deps.bzl", "tink_cc_deps")

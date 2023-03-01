@@ -30,4 +30,8 @@ readonly GITHUB_ORG="https://github.com/tink-crypto"
 ./kokoro/testutils/fetch_git_repo_if_not_present.sh "${TINK_BASE_DIR}" \
   "${GITHUB_ORG}/tink-cc"
 
+cp "WORKSPACE" "WORKSPACE.bak"
+./kokoro/testutils/replace_http_archive_with_local_repository.py \
+  -f "WORKSPACE" -t "${TINK_BASE_DIR}"
 ./kokoro/testutils/run_bazel_tests.sh .
+mv "WORKSPACE.bak" "WORKSPACE"
