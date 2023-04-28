@@ -16,8 +16,13 @@
 
 set -euo pipefail
 
-# If we are running on Kokoro cd into the repository.
+IS_KOKORO="false"
 if [[ -n "${KOKORO_ARTIFACTS_DIR:-}" ]]; then
+  IS_KOKORO="true"
+fi
+readonly IS_KOKORO
+
+if [[ "${IS_KOKORO}" == "true" ]]; then
   TINK_BASE_DIR="$(echo "${KOKORO_ARTIFACTS_DIR}"/git*)"
   cd "${TINK_BASE_DIR}/tink_cc_gcpkms"
 fi
@@ -30,8 +35,16 @@ readonly GITHUB_ORG="https://github.com/tink-crypto"
 ./kokoro/testutils/fetch_git_repo_if_not_present.sh "${TINK_BASE_DIR}" \
   "${GITHUB_ORG}/tink-cc"
 
+./kokoro/testutils/copy_credentials.sh "testdata" "gcp"
+
+MANUAL_TARGETS=()
+if [[ "${IS_KOKORO}" == "true" ]]; then
+  MANUAL_TARGETS+=("//tink/integration/gcpkms:gcp_kms_aead_integration_test")
+fi
+readonly MANUAL_TARGETS
+
 cp "WORKSPACE" "WORKSPACE.bak"
 ./kokoro/testutils/replace_http_archive_with_local_repository.py \
   -f "WORKSPACE" -t "${TINK_BASE_DIR}"
-./kokoro/testutils/run_bazel_tests.sh .
+./kokoro/testutils/run_bazel_tests.sh . "${MANUAL_TARGETS[@]}"
 mv "WORKSPACE.bak" "WORKSPACE"
