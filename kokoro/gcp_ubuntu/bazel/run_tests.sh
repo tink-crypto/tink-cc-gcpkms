@@ -14,7 +14,19 @@
 # limitations under the License.
 ################################################################################
 
-set -euo pipefail
+# By default when run locally this script runs the command below directly on the
+# host. The CONTAINER_IMAGE variable can be set to run on a custom container
+# image for local testing. E.g.:
+#
+# CONTAINER_IMAGE="gcr.io/tink-test-infrastructure/linux-tink-cc-base:latest" \
+#  sh ./kokoro/gcp_ubuntu/bazel/run_tests.sh
+#
+# The user may specify TINK_BASE_DIR as the folder where to look for
+# tink-cc-gcpkms and its dependencies. That is:
+#   ${TINK_BASE_DIR}/tink_cc
+#   ${TINK_BASE_DIR}/tink_cc_gcpkms
+# NOTE: tink_cc is fetched from GitHub if not found.
+set -eEuo pipefail
 
 IS_KOKORO="false"
 if [[ -n "${KOKORO_ARTIFACTS_DIR:-}" ]]; then
@@ -22,12 +34,24 @@ if [[ -n "${KOKORO_ARTIFACTS_DIR:-}" ]]; then
 fi
 readonly IS_KOKORO
 
+RUN_COMMAND_ARGS=()
 if [[ "${IS_KOKORO}" == "true" ]]; then
   TINK_BASE_DIR="$(echo "${KOKORO_ARTIFACTS_DIR}"/git*)"
-  cd "${TINK_BASE_DIR}/tink_cc_gcpkms"
+  readonly C_PREFIX="us-docker.pkg.dev/tink-test-infrastructure/tink-ci-images"
+  readonly C_NAME="linux-tink-cc-base"
+  readonly C_HASH="56b511c2d0d4c38c8f98f520edce0d37769a01ede1527a34a5afdc0aa3529405"
+  CONTAINER_IMAGE="${C_PREFIX}/${C_NAME}@sha256:${C_HASH}"
+  RUN_COMMAND_ARGS+=( -k "${TINK_GCR_SERVICE_KEY}" )
+fi
+: "${TINK_BASE_DIR:=$(cd .. && pwd)}"
+readonly TINK_BASE_DIR
+readonly CONTAINER_IMAGE
+
+if [[ -n "${CONTAINER_IMAGE:-}" ]]; then
+  RUN_COMMAND_ARGS+=( -c "${CONTAINER_IMAGE}" )
 fi
 
-: "${TINK_BASE_DIR:=$(cd .. && pwd)}"
+cd "${TINK_BASE_DIR}/tink_cc_gcpkms"
 
 # Check for dependencies in TINK_BASE_DIR. Any that aren't present will be
 # downloaded.
@@ -45,6 +69,14 @@ readonly MANUAL_TARGETS
 
 cp "WORKSPACE" "WORKSPACE.bak"
 ./kokoro/testutils/replace_http_archive_with_local_repository.py \
-  -f "WORKSPACE" -t "${TINK_BASE_DIR}"
-./kokoro/testutils/run_bazel_tests.sh . "${MANUAL_TARGETS[@]}"
-mv "WORKSPACE.bak" "WORKSPACE"
+  -f "WORKSPACE" -t ..
+
+trap cleanup EXIT
+
+cleanup() {
+  # Restore the original WORKSPACE on exit (moslty useful for local testing).
+  mv "WORKSPACE.bak" "WORKSPACE"
+}
+
+./kokoro/testutils/run_command.sh "${RUN_COMMAND_ARGS[@]}" \
+  ./kokoro/testutils/run_bazel_tests.sh . "${MANUAL_TARGETS[@]}"
