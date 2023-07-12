@@ -3,14 +3,16 @@
 <!-- GCP Ubuntu --->
 
 [tink_cc_gcpkms_bazel_badge_gcp_ubuntu]: https://storage.googleapis.com/tink-kokoro-build-badges/tink-cc-gcpkms-bazel-gcp-ubuntu.svg
+[tink_cc_gcpkms_examples_bazel_badge_gcp_ubuntu]: https://storage.googleapis.com/tink-kokoro-build-badges/tink-cc-gcpkms-examples-bazel-gcp-ubuntu.svg
 
 <!-- MacOS --->
 
 [tink_cc_gcpkms_bazel_badge_macos]: https://storage.googleapis.com/tink-kokoro-build-badges/tink-cc-gcpkms-bazel-macos-external.svg
 
-**Test**     | **GCP Ubuntu**                                                 | **MacOS**
------------- | -------------------------------------------------------------- | ---------
-Tink (Bazel) | [![Bazel_GcpUbuntu][tink_cc_gcpkms_bazel_badge_gcp_ubuntu]](#) | [![Bazel_MacOs][tink_cc_gcpkms_bazel_badge_macos]](#)
+**Test**              | **GCP Ubuntu**                                                          | **MacOS**
+--------------------- | ----------------------------------------------------------------------- | ---------
+Tink (Bazel)          | [![Bazel_GcpUbuntu][tink_cc_gcpkms_bazel_badge_gcp_ubuntu]](#)          | [![Bazel_MacOs][tink_cc_gcpkms_bazel_badge_macos]](#)
+Tink Examples (Bazel) | [![Bazel_GcpUbuntu][tink_cc_gcpkms_examples_bazel_badge_gcp_ubuntu]](#) | N/A
 
 This is an extension to the [Tink C++](https://github.com/tink-crypto/tink-cc)
 library that provides support for Google Cloud KMS.
