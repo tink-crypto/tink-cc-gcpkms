@@ -58,7 +58,7 @@ readonly GITHUB_ORG="https://github.com/tink-crypto"
 ./kokoro/testutils/fetch_git_repo_if_not_present.sh "${TINK_BASE_DIR}" \
   "${GITHUB_ORG}/tink-cc"
 
-./kokoro/testutils/copy_credentials.sh "testdata" "gcp"
+./kokoro/testutils/copy_credentials.sh "examples/testdata" "gcp"
 
 cp "examples/WORKSPACE" "examples/WORKSPACE.bak"
 ./kokoro/testutils/replace_http_archive_with_local_repository.py \
