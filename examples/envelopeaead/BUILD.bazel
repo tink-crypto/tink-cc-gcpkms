@@ -1,0 +1,43 @@
+package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+cc_binary(
+    name = "envelopeaead_cli",
+    srcs = ["envelopeaead_cli.cc"],
+    deps = [
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@tink_cc//tink/aead:aead_config",
+        "@tink_cc//tink/aead:aead_key_templates",
+        "@tink_cc//tink/aead:kms_envelope_aead",
+        "@tink_cc//proto:tink_cc_proto",
+        "@tink_cc//tink/util:status",
+        "@tink_cc//tink/util:statusor",
+        "@tink_cc_gcpkms//tink/integration/gcpkms:gcp_kms_client",
+    ],
+)
+
+sh_test(
+    name = "envelopeaead_cli_test",
+    size = "small",
+    srcs = ["envelopeaead_cli_test.sh"],
+    args = [
+        "$(rootpath :envelopeaead_cli)",
+        "gcp-kms://projects/tink-test-infrastructure/locations/global/keyRings/unit-and-integration-testing/cryptoKeys/aead-key",
+        "$(rootpath //testdata/gcp:credential.json)",
+    ],
+    data = [
+        ":envelopeaead_cli",
+        # Change this to your credential
+        "//testdata/gcp:credential.json",
+    ],
+    tags = [
+        "manual",
+        "requires-network",
+    ],
+)
