@@ -1,5 +1,7 @@
 workspace(name = "tink_cc_gcpkms")
 
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 http_archive(
     name = "tink_cc",
     urls = ["https://github.com/tink-crypto/tink-cc/archive/main.zip"],
