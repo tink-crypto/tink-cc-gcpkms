@@ -59,6 +59,22 @@ readonly GITHUB_ORG="https://github.com/tink-crypto"
   "${GITHUB_ORG}/tink-cc"
 
 ./kokoro/testutils/copy_credentials.sh "testdata" "gcp"
+./kokoro/testutils/copy_credentials.sh "examples/testdata" "gcp"
+
+cp "WORKSPACE" "WORKSPACE.bak"
+./kokoro/testutils/replace_http_archive_with_local_repository.py \
+  -f "WORKSPACE" -t ..
+
+cp "examples/WORKSPACE" "examples/WORKSPACE.bak"
+./kokoro/testutils/replace_http_archive_with_local_repository.py \
+  -f "examples/WORKSPACE" -t ../..
+
+trap cleanup EXIT
+
+cleanup() {
+  mv "WORKSPACE.bak" "WORKSPACE"
+  mv "examples/WORKSPACE.bak" "examples/WORKSPACE"
+}
 
 MANUAL_TARGETS=()
 if [[ "${IS_KOKORO}" == "true" ]]; then
@@ -66,16 +82,15 @@ if [[ "${IS_KOKORO}" == "true" ]]; then
 fi
 readonly MANUAL_TARGETS
 
-cp "WORKSPACE" "WORKSPACE.bak"
-./kokoro/testutils/replace_http_archive_with_local_repository.py \
-  -f "WORKSPACE" -t ..
-
-trap cleanup EXIT
-
-cleanup() {
-  # Restore the original WORKSPACE on exit (moslty useful for local testing).
-  mv "WORKSPACE.bak" "WORKSPACE"
-}
-
 ./kokoro/testutils/run_command.sh "${RUN_COMMAND_ARGS[@]}" \
   ./kokoro/testutils/run_bazel_tests.sh . "${MANUAL_TARGETS[@]}"
+
+# Test examples.
+EXAMPLES_MANUAL_TARGETS=()
+if [[ "${IS_KOKORO}" == "true" ]]; then
+  EXAMPLES_MANUAL_TARGETS+=( "//envelopeaead:envelopeaead_cli_test" )
+fi
+readonly EXAMPLES_MANUAL_TARGETS
+
+./kokoro/testutils/run_command.sh "${RUN_COMMAND_ARGS[@]}" \
+  ./kokoro/testutils/run_bazel_tests.sh examples "${EXAMPLES_MANUAL_TARGETS[@]}"
