@@ -17,7 +17,7 @@ Tink Examples (Bazel) | [![Bazel_GcpUbuntu][tink_cc_gcpkms_examples_bazel_badge_
 This is an extension to the [Tink C++](https://github.com/tink-crypto/tink-cc)
 library that provides support for Google Cloud KMS.
 
-The latest version is 2.0.0.
+The latest version is 2.1.0.
 
 The official documentation is available at https://developers.google.com/tink.
 
