@@ -163,10 +163,9 @@ int main(int argc, char** argv) {
                     ? "default credentials"
                     : absl::StrCat("credentials file ", credentials))
             << " to envelope " << mode << " file " << input_filename
-            << " with associated data '" << associated_data << "'."
-            << std::endl;
+            << " with associated data '" << associated_data << "'." << '\n';
   LOG(INFO) << "The resulting output will be written to " << output_filename
-            << std::endl;
+            << '\n';
 
   tink_cc_gcpkms_examples::KmsEnvelopAeadCli(mode, kek_uri, input_filename,
                                              output_filename, credentials,
