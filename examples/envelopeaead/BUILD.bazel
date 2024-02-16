@@ -12,6 +12,7 @@ cc_binary(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@tink_cc//tink:aead",
         "@tink_cc//tink/aead:aead_config",
         "@tink_cc//tink/aead:aead_key_templates",
         "@tink_cc//tink/aead:kms_envelope_aead",
