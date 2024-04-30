@@ -111,12 +111,15 @@ def tink_cc_gcpkms_deps():
     """Loads dependencies for Tink C++ Cloud KMS."""
 
     # Google PKI certs for connecting to GCP KMS.
+    #
+    # Note: sha256 is intentionally omitted as this is not a static resource.
+    # Whenever updated, clients should fetch the latest revision provided at
+    # this URL.
     if not native.existing_rule("google_root_pem"):
         http_file(
             name = "google_root_pem",
             executable = 0,
             urls = ["https://pki.goog/roots.pem"],
-            sha256 = "1acf0d4780541758be2c0f998e1e0275232626ed3f8793d8e2fe8e2753750613",
         )
 
     _grpc_deps()
