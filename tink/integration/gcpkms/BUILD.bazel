@@ -39,6 +39,30 @@ cc_library(
 )
 
 cc_library(
+    name = "gcp_kms_public_key_verify",
+    srcs = ["gcp_kms_public_key_verify.cc"],
+    hdrs = ["gcp_kms_public_key_verify.h"],
+    include_prefix = "tink/integration/gcpkms",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@boringssl//:crypto",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/status",
+        "@com_googlesource_code_re2//:re2",
+        "@google_cloud_cpp//:kms",
+        "@tink_cc//proto:common_cc_proto",
+        "@tink_cc//tink:cleartext_keyset_handle",
+        "@tink_cc//tink:keyset_handle",
+        "@tink_cc//tink:keyset_reader",
+        "@tink_cc//tink:public_key_verify",
+        "@tink_cc//tink/signature:config_v0",
+        "@tink_cc//tink/signature:signature_pem_keyset_reader",
+        "@tink_cc//tink/util:status",
+        "@tink_cc//tink/util:statusor",
+    ],
+)
+
+cc_library(
     name = "gcp_kms_client",
     srcs = ["gcp_kms_client.cc"],
     hdrs = ["gcp_kms_client.h"],
@@ -129,6 +153,22 @@ cc_test(
         ":gcp_kms_public_key_sign",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+        "@google_cloud_cpp//:kms",
+        "@google_cloud_cpp//:kms_mocks",
+        "@tink_cc//tink/util:statusor",
+        "@tink_cc//tink/util:test_matchers",
+        "@tink_cc//tink/util:test_util",
+    ],
+)
+
+cc_test(
+    name = "gcp_kms_public_key_verify_test",
+    srcs = ["gcp_kms_public_key_verify_test.cc"],
+    deps = [
+        ":gcp_kms_public_key_verify",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
         "@google_cloud_cpp//:kms",
         "@google_cloud_cpp//:kms_mocks",

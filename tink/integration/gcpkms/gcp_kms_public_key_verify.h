@@ -14,15 +14,15 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef TINK_INTEGRATION_GCPKMS_GCP_KMS_PUBLIC_KEY_SIGN_H_
-#define TINK_INTEGRATION_GCPKMS_GCP_KMS_PUBLIC_KEY_SIGN_H_
+#ifndef TINK_INTEGRATION_GCPKMS_GCP_KMS_PUBLIC_KEY_VERIFY_H_
+#define TINK_INTEGRATION_GCPKMS_GCP_KMS_PUBLIC_KEY_VERIFY_H_
 
 #include <memory>
 
 #include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
-#include "tink/public_key_sign.h"
+#include "tink/public_key_verify.h"
 #include "tink/util/statusor.h"
 
 namespace crypto {
@@ -30,17 +30,18 @@ namespace tink {
 namespace integration {
 namespace gcpkms {
 
-// Creates a new PublicKeySign object that is bound to the key specified
-// in `key_name`, and that uses the `kms_client` to communicate with Cloud KMS.
+// Creates a new PublicKeyVerify object that is bound to the key specified
+// in `key_name`, and uses the `kms_client` to communicate with Cloud KMS.
 //
-// Note that this signer uses Cloud KMS as a crypto oracle for each signing
-// operation.
+// Note that this verifier only reaches out to Cloud KMS once, to retrieve the
+// public key associated with the specified CryptoKeyVersion. Later verification
+// operations are performed locally.
 //
 // Valid values for `key_name` have the following format:
 //    projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*.
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
-crypto::tink::util::StatusOr<std::unique_ptr<PublicKeySign>>
-CreateGcpKmsPublicKeySign(
+crypto::tink::util::StatusOr<std::unique_ptr<PublicKeyVerify>>
+CreateGcpKmsPublicKeyVerify(
     absl::string_view key_name,
     absl::Nonnull<
         std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>>
@@ -51,4 +52,4 @@ CreateGcpKmsPublicKeySign(
 }  // namespace tink
 }  // namespace crypto
 
-#endif  // TINK_INTEGRATION_GCPKMS_GCP_KMS_PUBLIC_KEY_SIGN_H_
+#endif  // TINK_INTEGRATION_GCPKMS_GCP_KMS_PUBLIC_KEY_VERIFY_H_

@@ -12,6 +12,7 @@ load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 load("@envoy_api//bazel:repositories.bzl", "api_dependencies")
 load("@google_cloud_cpp//bazel:google_cloud_cpp_deps.bzl", "google_cloud_cpp_deps")
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+load("@rules_python//python:repositories.bzl", "py_repositories")
 load("@tink_cc//:tink_cc_deps.bzl", "tink_cc_deps")
 load("@tink_cc//:tink_cc_deps_init.bzl", "tink_cc_deps_init")
 load("@upb//bazel:workspace_deps.bzl", "upb_deps")
@@ -27,6 +28,10 @@ def tink_cc_gcpkms_deps_init(
       register_go: Whether or not to register Go toolchains. If toolchains
         are already registered, it should not be done again here.
     """
+
+    # Needed to avoid https://github.com/bazelbuild/rules_python/issues/1560. See also
+    # https://github.com/bazelbuild/rules_python/blob/main/CHANGELOG.md#changed-6.
+    py_repositories()
 
     tink_cc_deps()
 

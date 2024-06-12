@@ -153,13 +153,24 @@ def tink_cc_gcpkms_deps():
             urls = ["https://github.com/abseil/abseil-cpp/archive/refs/tags/20230802.1.zip"],
         )
 
+    if not native.existing_rule("rules_python"):
+        # This is needed to avoid failures like
+        # https://github.com/bazelbuild/rules_python/issues/1560.
+        # Release from 2023-10-06.
+        http_archive(
+            name = "rules_python",
+            sha256 = "9d04041ac92a0985e344235f5d946f71ac543f1b1565f2cdbc9a2aaee8adf55b",
+            strip_prefix = "rules_python-0.26.0",
+            url = "https://github.com/bazelbuild/rules_python/releases/download/0.26.0/rules_python-0.26.0.tar.gz",
+        )
+
     if not native.existing_rule("tink_cc"):
-        # Release from 2024-04-23.
+        # Commit from 2024-06-07.
         http_archive(
             name = "tink_cc",
-            sha256 = "14a3f64a56d7e9296889d7eba7a3b8787c3281e5bc5791033c54baf810a0b6ef",
-            strip_prefix = "tink-cc-2.1.3",
-            urls = ["https://github.com/tink-crypto/tink-cc/releases/download/v2.1.3/tink-cc-2.1.3.zip"],
+            sha256 = "ceae792f6db4ae4d434a80a50e761083abf7d491db1339659945030a3b7fa770",
+            strip_prefix = "tink-cc-1d5896248d424481f3f59e446c254844ffb11919",
+            urls = ["https://github.com/tink-crypto/tink-cc/archive/1d5896248d424481f3f59e446c254844ffb11919.tar.gz"],
         )
 
     if not native.existing_rule("com_googlesource_code_re2"):
