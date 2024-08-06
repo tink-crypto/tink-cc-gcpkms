@@ -35,10 +35,11 @@
 #include "tink/keyset_reader.h"
 #include "tink/public_key_verify.h"
 #include "tink/signature/config_v0.h"
+#include "tink/signature/signature_config.h"
 #include "tink/signature/signature_pem_keyset_reader.h"
+#include "tink/signature/signature_public_key.h"
 #include "tink/util/status.h"
 #include "tink/util/statusor.h"
-#include "proto/common.pb.h"
 
 namespace crypto {
 namespace tink {
@@ -125,9 +126,59 @@ StatusOr<HashType> GetHashFromAlgorithm(
   }
 }
 
-// Uses the right internal verifier based on the KMS `algorithm`, and converts
-// the public key to the right format accordingly.
-StatusOr<std::unique_ptr<PublicKeyVerify>> GetInternalVerifierForAlgorithm(
+StatusOr<PublicKey> GetGcpKmsPublicKey(
+    absl::string_view key_name,
+    absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
+  if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
+    return util::Status(
+        absl::StatusCode::kInvalidArgument,
+        absl::StrCat(key_name, " does not match the KMS key name format: ",
+                     kKmsKeyNameFormat->pattern()));
+  }
+  if (kms_client == nullptr) {
+    return util::Status(absl::StatusCode::kInvalidArgument,
+                        "KMS client cannot be null.");
+  }
+
+  // Retrieve the related public key from KMS.
+  GetPublicKeyRequest request;
+  request.set_name(key_name);
+  google::cloud::StatusOr<PublicKey> response =
+      kms_client->GetPublicKey(request);
+  if (!response.ok()) {
+    return util::Status(absl::StatusCode::kInvalidArgument,
+                        absl::StrCat("GCP KMS GetPublicKey failed: ",
+                                     response.status().message()));
+  }
+
+  // Perform integrity checks.
+  if (response->name() != key_name) {
+    return util::Status(absl::StatusCode::kInternal,
+                        absl::StrCat("The key name in the response does not "
+                                     "match the requested key name.",
+                                     response.status().message()));
+  }
+  absl::crc32c_t given_crc32c =
+      static_cast<absl::crc32c_t>(response->pem_crc32c().value());
+  absl::crc32c_t computed_crc32c = absl::ComputeCrc32c(response->pem());
+  if (computed_crc32c != given_crc32c) {
+    return util::Status(absl::StatusCode::kInternal,
+                        absl::StrCat("Public key checksum mismatch.",
+                                     response.status().message()));
+  }
+
+  if (!IsValidAlgorithm(response->algorithm())) {
+    return util::Status(
+        absl::StatusCode::kInvalidArgument,
+        absl::StrCat("Unsupported algorithm: ", response->algorithm()));
+  }
+  // Getting the value is ok as status is checked above, and needed for
+  // implicit conversion.
+  return response.value();
+}
+
+// Converts the given PEM key into a Tink Keyset Handle.
+StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPemKey(
     const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
     absl::string_view pem_key) {
   StatusOr<HashType> hash_type = GetHashFromAlgorithm(algorithm);
@@ -188,8 +239,16 @@ StatusOr<std::unique_ptr<PublicKeyVerify>> GetInternalVerifierForAlgorithm(
   if (!keyset.ok()) {
     return keyset.status();
   }
+  return CleartextKeysetHandle::Read(std::move(*keyset));
+}
+
+// Uses the right internal verifier based on the KMS `algorithm`, and converts
+// the public key to the right format accordingly.
+StatusOr<std::unique_ptr<PublicKeyVerify>> GetInternalVerifierForAlgorithm(
+    CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
+    absl::string_view pem_key) {
   StatusOr<std::unique_ptr<KeysetHandle>> keyset_handle =
-      CleartextKeysetHandle::Read(std::move(*keyset));
+      GetTinkKeySetHandleFromPemKey(algorithm, pem_key);
   if (!keyset_handle.ok()) {
     return keyset_handle.status();
   }
@@ -216,54 +275,56 @@ class GcpKmsPublicKeyVerify : public PublicKeyVerify {
 };
 }  // namespace
 
+StatusOr<std::shared_ptr<const crypto::tink::SignaturePublicKey>>
+GetSignaturePublicKey(
+    absl::string_view key_name,
+    absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
+  auto gcp_kms_public_key = GetGcpKmsPublicKey(key_name, kms_client);
+  if (!gcp_kms_public_key.ok()) {
+    return gcp_kms_public_key.status();
+  }
+
+  // Needed for the cast to crypto::tink::SignaturePublicKey.
+  auto register_status = SignatureConfig::Register();
+  if (!register_status.ok()) {
+    return register_status;
+  }
+  auto tink_keyset_handle = GetTinkKeySetHandleFromPemKey(
+      gcp_kms_public_key->algorithm(), gcp_kms_public_key->pem());
+  if (!tink_keyset_handle.ok()) {
+    return tink_keyset_handle.status();
+  }
+
+  // Assumes the pem_key is set as primary key in the keyset.
+  // Validate to return error instead of crashing.
+  auto keyset_validation = tink_keyset_handle.value()->Validate();
+  if (!keyset_validation.ok()) {
+    return keyset_validation;
+  }
+
+  auto key = tink_keyset_handle.value()->GetPrimary().GetKey();
+  auto signature_public_key =
+      std::dynamic_pointer_cast<const crypto::tink::SignaturePublicKey>(key);
+  if (signature_public_key == nullptr) {
+    return util::Status(
+        absl::StatusCode::kInternal,
+        absl::StrCat(
+            "Failed to cast key to crypto::tink::SignaturePublicKey. Keyset: ",
+            tink_keyset_handle.value()->GetKeysetInfo()));
+  }
+  return signature_public_key;
+}
+
 StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
     absl::string_view key_name,
     absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
-  if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
-    return util::Status(
-        absl::StatusCode::kInvalidArgument,
-        absl::StrCat(key_name, " does not match the KMS key name format: ",
-                     kKmsKeyNameFormat->pattern()));
-  }
-  if (kms_client == nullptr) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
-                        "KMS client cannot be null.");
-  }
-
-  // Retrieve the related public key from KMS.
-  GetPublicKeyRequest request;
-  request.set_name(key_name);
-  google::cloud::StatusOr<PublicKey> response =
-      kms_client->GetPublicKey(request);
-  if (!response.ok()) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
-                        absl::StrCat("GCP KMS GetPublicKey failed: ",
-                                     response.status().message()));
-  }
-
-  // Perform integrity checks.
-  if (response->name() != key_name) {
-    return util::Status(absl::StatusCode::kInternal,
-                        absl::StrCat("The key name in the response does not "
-                                     "match the requested key name.",
-                                     response.status().message()));
-  }
-  absl::crc32c_t given_crc32c =
-      static_cast<absl::crc32c_t>(response->pem_crc32c().value());
-  absl::crc32c_t computed_crc32c = absl::ComputeCrc32c(response->pem());
-  if (computed_crc32c != given_crc32c) {
-    return util::Status(absl::StatusCode::kInternal,
-                        absl::StrCat("Public key checksum mismatch.",
-                                     response.status().message()));
-  }
-
-  if (!IsValidAlgorithm(response->algorithm())) {
-    return util::Status(
-        absl::StatusCode::kInvalidArgument,
-        absl::StrCat("Unsupported algorithm: ", response->algorithm()));
+  auto gcp_kms_public_key = GetGcpKmsPublicKey(key_name, kms_client);
+  if (!gcp_kms_public_key.ok()) {
+    return gcp_kms_public_key.status();
   }
   StatusOr<std::unique_ptr<PublicKeyVerify>> verifier =
-      GetInternalVerifierForAlgorithm(response->algorithm(), response->pem());
+      GetInternalVerifierForAlgorithm(gcp_kms_public_key->algorithm(),
+                                      gcp_kms_public_key->pem());
   return absl::make_unique<GcpKmsPublicKeyVerify>(*std::move(verifier));
 }
 

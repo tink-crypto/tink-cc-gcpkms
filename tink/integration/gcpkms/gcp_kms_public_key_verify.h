@@ -23,6 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "tink/public_key_verify.h"
+#include "tink/signature/signature_public_key.h"
 #include "tink/util/statusor.h"
 
 namespace crypto {
@@ -42,6 +43,20 @@ namespace gcpkms {
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
 crypto::tink::util::StatusOr<std::unique_ptr<PublicKeyVerify>>
 CreateGcpKmsPublicKeyVerify(
+    absl::string_view key_name,
+    absl::Nonnull<
+        std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>>
+        kms_client);
+
+// Retrieves the Tink signature public key with the specified CryptoKeyVersion
+// from Cloud KMS.
+//
+// Valid values for `key_name` have the following format:
+//    projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*.
+// See https://cloud.google.com/kms/docs/object-hierarchy for more info.
+crypto::tink::util::StatusOr<
+    std::shared_ptr<const crypto::tink::SignaturePublicKey>>
+GetSignaturePublicKey(
     absl::string_view key_name,
     absl::Nonnull<
         std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>>

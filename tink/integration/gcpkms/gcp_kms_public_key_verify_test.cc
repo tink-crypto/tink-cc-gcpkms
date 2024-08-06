@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -29,6 +30,12 @@
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/kms/v1/mocks/mock_key_management_connection.h"
 #include "google/cloud/status.h"
+#include "tink/key_status.h"
+#include "tink/keyset_handle.h"
+#include "tink/keyset_handle_builder.h"
+#include "tink/public_key_verify.h"
+#include "tink/signature/config_v0.h"
+#include "tink/signature/signature_config.h"
 #include "tink/util/test_matchers.h"
 
 namespace crypto {
@@ -123,6 +130,7 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
         kms_client_(
             std::make_shared<KeyManagementServiceClient>(mock_connection_)) {}
 
+  // Public keys generated with openssl match Cloud KMS public keys.
   void ExpectGetPublicKey(int times) {
     EXPECT_CALL(*mock_connection_, GetPublicKey)
         .Times(times)
@@ -297,6 +305,91 @@ TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPssInvalidSignature) {
   EXPECT_THAT((*kms_verifier)->Verify(signature, kData),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("Invalid signature")));
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify, GetTinkEcdsaSuccess) {
+  ExpectGetPublicKey(1);
+  auto tink_key = GetSignaturePublicKey(kKeyNameEcdsa, kms_client_);
+  EXPECT_THAT(tink_key.status(), IsOk());
+
+  // Verify a signature with the key.
+  auto tink_keyset_handle =
+      KeysetHandleBuilder()
+          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
+              tink_key.value(), ::crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true))
+          .Build();
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kEcdsaSignature, &signature));
+
+  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
+      crypto::tink::ConfigSignatureV0());
+  EXPECT_THAT(verifier, IsOk());
+  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify, GetTinkRsaPkcs1Success) {
+  ExpectGetPublicKey(1);
+  auto tink_key = GetSignaturePublicKey(kKeyNameRsaPkcs1, kms_client_);
+  EXPECT_THAT(tink_key.status(), IsOk());
+
+  // Verify a signature with the key.
+  auto tink_keyset_handle =
+      KeysetHandleBuilder()
+          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
+              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true))
+          .Build();
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsaPkcs1Signature, &signature));
+
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
+      crypto::tink::ConfigSignatureV0());
+  EXPECT_THAT(verifier, IsOk());
+  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify, GetTinkRsaPssSuccess) {
+  ExpectGetPublicKey(1);
+  auto tink_key = GetSignaturePublicKey(kKeyNameRsaPss, kms_client_);
+  EXPECT_THAT(tink_key.status(), IsOk());
+
+  // Verify a signature with the key.
+  auto tink_keyset_handle =
+      KeysetHandleBuilder()
+          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
+              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true))
+          .Build();
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsaPssSignature, &signature));
+
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
+      crypto::tink::ConfigSignatureV0());
+  EXPECT_THAT(verifier, IsOk());
+  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify, GetTinkInvalidAlgorithmFails) {
+  ExpectGetPublicKey(1);
+  auto tink_key = GetSignaturePublicKey(kKeyNameInvalidAlgorithm, kms_client_);
+  EXPECT_THAT(tink_key.status(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                          HasSubstr("Unsupported algorithm")));
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify, CallRegisterTwiceOk) {
+  ASSERT_THAT(SignatureConfig::Register(), IsOk());
+  ExpectGetPublicKey(1);
+  auto tink_key = GetSignaturePublicKey(kKeyNameEcdsa, kms_client_);
+  EXPECT_THAT(tink_key.status(), IsOk());
 }
 
 }  // namespace
