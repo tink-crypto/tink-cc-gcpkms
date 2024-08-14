@@ -55,6 +55,7 @@ using ::google::cloud::kms_v1_mocks::MockKeyManagementServiceConnection;
 using ::testing::HasSubstr;
 
 constexpr absl::string_view kData = "data";
+
 // Generated with
 // $ openssl ec -in ecdsa-private.pem -pubout -out ecdsa-public.pem
 // after generating the private key with
@@ -65,14 +66,16 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEPu+j4MR6Veo9F2YyKq0AObMM3UoN
 K4Z6V0tej/9smL+QfqkILtkY0DROmBbLb/tOg+zi/q6CAG5FuBK7CaZP0g==
 -----END PUBLIC KEY-----
 )";
+
 // Generated with
 // $ echo -n "data" | openssl dgst -sha256 -sign ecdsa-private.pem | base64
 constexpr absl::string_view kEcdsaSignature = R"(
 MEUCIQD1n5HhsGwZ4hU2LVqTnUqQLlGidxPVVUBPbg8W1FGm4QIgQtSebi2H9/EZPKSsqYnkIFts
 zI4jNZYWfcOFOjtJi7o=
 )";
+
 // Generated with
-// $ openssl rsa -in rsa-private.pem -pub out > rsa-public.pem
+// $ openssl rsa -in rsa-private.pem -pubout > rsa-public.pem
 // after generating the private key with
 // $ openssl genrsa -out rsa-private.pem 2048
 constexpr absl::string_view kRsaPublicKey = R"(
@@ -86,6 +89,7 @@ Tt1aTrN7iWBoy/YBL61yxMMr91gtWh5Dp6KXYErYxS6v5fh5VOmrYJCeMugyokIW
 zQIDAQAB
 -----END PUBLIC KEY-----
 )";
+
 // Generated with
 // $ echo -n "data" | openssl pkeyutl -sign -inkey rsa-private.pem
 //     -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pkcs1 | base64
@@ -96,6 +100,7 @@ vg7UmMRXcfw956D3skFZn2dbu/xCRhYuZCiej72s6sNVRC1dHpIBz2+/f7ux4/gJgiYJGC9bvmkR
 DzZIy7e3zf1Be7ZT/zAreAbL+Zk8BEvoWItV0YkDUs33MkFY1MCR44grai6fGGOJAxgahlcgvkue
 O3tnao5epghHnwamS9I2h8zcBe984Z0MR+NXfw==
 )";
+
 // Generated with
 // $ echo -n "data" | openssl dgst -sha256 -binary | \
 //     openssl pkeyutl -sign -inkey rsa-private.pem -pkeyopt digest:sha256 \
@@ -107,6 +112,16 @@ XPTS+QS3LmWx8Qv4wKUgdluDK0ZD+Dm2MAHfYaLq3J3LqJhjOkcnM2KuYJcUFj40edYkhwg1oYUc
 QKy0+gMjUGqjwTxq3EBlkngY0LWh2fE+COhoq6mAddViyVfJjHCApY1KZXPWgg5tzbpttmDf6yKT
 StTyAxt686GkeWL0kUzsmkGDQB1Ld6WJ+5KNlQ==
 )";
+
+// Generated with:
+// openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:secp256k1 \
+//   | openssl pkey -pubout
+constexpr absl::string_view kSecp256k1PublicKey =
+    "-----BEGIN PUBLIC KEY-----\n"
+    "MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEuDj/ROW8F3vyEYnQdmCC/J2EMiaIf8l2\n"
+    "A3EQC37iCm/wyddb+6ezGmvKGXRJbutW3jVwcZVdg8Sxutqgshgy6Q==\n"
+    "-----END PUBLIC KEY-----";
+
 constexpr absl::string_view kKeyNameEcdsa =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/1";
 constexpr absl::string_view kKeyNameRsaPkcs1 =
@@ -119,7 +134,7 @@ constexpr absl::string_view kKeyNameCrcNameError =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/5";
 constexpr absl::string_view kKeyNameCrcPemError =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/6";
-constexpr absl::string_view kKeyNameInvalidAlgorithm =
+constexpr absl::string_view kKeyNameEcdsaSecp256k1 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/7";
 
 class TestGcpKmsPublicKeyVerify : public testing::Test {
@@ -157,11 +172,11 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
             response.set_pem(kRsaPublicKey);
-          } else if (request.name() == kKeyNameInvalidAlgorithm) {
+          } else if (request.name() == kKeyNameEcdsaSecp256k1) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::EC_SIGN_SECP256K1_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::HSM);
-            response.set_pem(kEcdsaPublicKey);
+            response.set_pem(kSecp256k1PublicKey);
           } else if (request.name() == kKeyNameErrorGetPublicKey) {
             return Status(google::cloud::StatusCode::kInternal,
                           "Internal error");
@@ -232,10 +247,11 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetPublicKeyCrcPemMismatchFails) {
                        HasSubstr("Public key checksum mismatch")));
 }
 
-TEST_F(TestGcpKmsPublicKeyVerify, GetPublicKeyInvalidAlgorithmFails) {
+TEST_F(TestGcpKmsPublicKeyVerify,
+       CreateGcpKmsPublicKeyVerifyWithEcdsaSecp256k1Fails) {
   ExpectGetPublicKey(1);
   auto kms_verifier =
-      CreateGcpKmsPublicKeyVerify(kKeyNameInvalidAlgorithm, kms_client_);
+      CreateGcpKmsPublicKeyVerify(kKeyNameEcdsaSecp256k1, kms_client_);
   EXPECT_THAT(kms_verifier.status(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("Unsupported algorithm")));
@@ -307,7 +323,7 @@ TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPssInvalidSignature) {
                        HasSubstr("Invalid signature")));
 }
 
-TEST_F(TestGcpKmsPublicKeyVerify, GetTinkEcdsaSuccess) {
+TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsaSuccess) {
   ExpectGetPublicKey(1);
   auto tink_key = GetSignaturePublicKey(kKeyNameEcdsa, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
@@ -330,7 +346,7 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetTinkEcdsaSuccess) {
   EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
 }
 
-TEST_F(TestGcpKmsPublicKeyVerify, GetTinkRsaPkcs1Success) {
+TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPkcs1Success) {
   ExpectGetPublicKey(1);
   auto tink_key = GetSignaturePublicKey(kKeyNameRsaPkcs1, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
@@ -354,7 +370,7 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetTinkRsaPkcs1Success) {
   EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
 }
 
-TEST_F(TestGcpKmsPublicKeyVerify, GetTinkRsaPssSuccess) {
+TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPssSuccess) {
   ExpectGetPublicKey(1);
   auto tink_key = GetSignaturePublicKey(kKeyNameRsaPss, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
@@ -378,9 +394,9 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetTinkRsaPssSuccess) {
   EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
 }
 
-TEST_F(TestGcpKmsPublicKeyVerify, GetTinkInvalidAlgorithmFails) {
+TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsaSecp256k1Fails) {
   ExpectGetPublicKey(1);
-  auto tink_key = GetSignaturePublicKey(kKeyNameInvalidAlgorithm, kms_client_);
+  auto tink_key = GetSignaturePublicKey(kKeyNameEcdsaSecp256k1, kms_client_);
   EXPECT_THAT(tink_key.status(), StatusIs(absl::StatusCode::kInvalidArgument,
                                           HasSubstr("Unsupported algorithm")));
 }
