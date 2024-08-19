@@ -91,7 +91,29 @@ zQIDAQAB
 )";
 
 // Generated with
-// $ echo -n "data" | openssl pkeyutl -sign -inkey rsa-private.pem
+// $ openssl rsa -in rsa-private-4096.pem -pubout > rsa-public-4096.pem
+// after generating the private key with
+// $ openssl genrsa -out rsa-private-4096.pem 4096
+constexpr absl::string_view kRsa4096PublicKey = R"(
+-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA1GeEVEj1xv0ppPMAVMmK
+PIsx7xt/6lyM2I9Am11HDVZ8+pN9FgGb7hMIXqBQWWhLCStvLBJPSlv+RUsw1GK4
+3MD+Yxlc4X132KaC/Z6qIf+aD5FthfETtTEJem7HCTCSEyJXoeXYu69NrN9e+m+V
+bcIVFaZ+f31tiDtSZi7fTCVbmSGG9WeqKZe/hKuhOan8lH2IJmxFjOk9hKFVqxB0
+wTMFw7enAwLJxDqQMFXVK8zgjfvJ147AIol96VbS7si9Lnff9TfNjzcGfe1hsXNP
+g10gLFu2N2LmjD9sb1gfWJGSGTsJiyX/owu+jj7GCWyQhY6hFTvZKbE0c1ZFLYbv
+IiUBYJZUBk58iFgO7WA+fync9jDN9nNlw68e3xnqF7iherDS7IqZ5x8d+b+wgJKy
+pBJI5hYY3OJB2yp4Ao9K4wQFxvJBBpg3jCGoofVVjrA8lePa3Yb8EHy+z5u5mYNj
+VSxw8SXzqNsAgl5aW6c7Gs1c7m+Hpfdi4K+OJl60H0eYF+ks0KVShNRYri6q347D
+IVpX3Qc6YOGPUHUj9lX7NfFJseGzbiJYTOQ+kVxvCmUqKMfq1vLvkgEfTpK53pTy
+Z8h8oIZLTJo4MPwFbQAWNcKBGh43fMLWVWCED64N1S/2qNVv1R90OCerKLaX8WdY
+txOSq3pgn5BD2tHhZ7ZmxTsCAwEAAQ==
+-----END PUBLIC KEY-----
+)";
+
+// Generated with
+// $ echo -n "data" | openssl dgst -sha256 -binary | openssl pkeyutl -sign \
+//     -inkey rsa-private.pem \
 //     -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pkcs1 | base64
 constexpr absl::string_view kRsaPkcs1Signature = R"(
 NI2jo+WIrKjoyIR/jtlSBT0BJJJ0aDgIi86rXVOqPq35DyULjT1JwtKvgtqocNaeeKDQ4HRQhNKn
@@ -102,7 +124,39 @@ O3tnao5epghHnwamS9I2h8zcBe984Z0MR+NXfw==
 )";
 
 // Generated with
-// $ echo -n "data" | openssl dgst -sha256 -binary | \
+// $ echo -n "data" | openssl dgst -sha256 -binary | openssl pkeyutl -sign \
+//     -inkey rsa-private-4096.pem  \
+//     -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pkcs1 | base64
+constexpr absl::string_view kRsa4096Sha256Pkcs1Signature = R"(
+cqJsTB70moE9s+3OElRbmLFFXkRIYU0TKuhL+y8UMr/XUOqcXdrynnionthm6DJm681TJ88eHN29
+eeZiyTt1UtQZBbMjAUOdrhcndHNdoxfQuVPJ8a4HuMOWXTT6B2ewxNDrWjhJZ2PARPBnl3OR1JWe
+x8ynj7gIPFcsW6+pVDilMmxRkHHxj3xKplQ+uYRlY9ifggcs/ujx+UxZcScicfZWTbNuGlmddN6+
+IV6q++gW7VoU+OZSaLBttFU93ohkLNnFYjRF1JxdKXNzOciJ7/AHtDd/XJ2zqnJsJCm0G/GkK+UB
+W3lTkFcWjaqEqQEFKxVygIWIQsKF760BoZDkTgeSFeSo0aUAFG3WlKFoDQKQUVVgoKq0cU+VMqin
+vfAunEHJAmq4An9IcxX3As8gyGByHO5xfoXwRrQfrJunRGWPvp5MXFm+i53FkfkDs1+DtypSKkX0
+BrCSu1uRmIZxt0MhgJWgvQdXtglH3y4b7bmFOG/dvyGhMoSSpfRdjulPL/P5jW+zlDdwpr8WtrnY
+RC0m4X8YpiBhXojYd1rtne5Q+A8t8EKNt2SXPadhSsRPoNF5wgD9tkoTvE0SbbdUm59c+cp9Hdj+
+oJTWhYtpAcC+p6WebsZ9ILE180j44RRMF9GRk34AiDhr5bOwR+EEi8ScMj7LQhb+lcfQKwYr0EU=
+)";
+
+// Generated with
+// $ echo -n "data" | openssl dgst -sha512 -binary | openssl pkeyutl -sign \
+//     -inkey rsa-private-4096.pem  \
+//     -pkeyopt digest:sha512 -pkeyopt rsa_padding_mode:pkcs1 | base64
+constexpr absl::string_view kRsa4096Sha512Pkcs1Signature = R"(
+lq3wThF4Xa99ICz0vsTSBMa+uUclsECaUetUmLDvB/zjmHBIzeFrf6l0b/OtF9gnqq35nbvnJlaC
+8vCZJMYfiGahkUfi7Vqw4sxxCfmBTbN+F8bl4n0dV+Na00pNHgRNKLaOcstyvBC74DD4e3mM799T
+3nOELe8ASUCa0jGlVDhrSIQVt1wnfNZktrLWRjWm+cCz9w5RXira2fqz3/sDQbG6AcpJ8SzsfBd4
+/52sQTRtrIDs2T+0BEku77rFozXMhO0ttkVsFijNsUr0R+FG3/gkPVBbMJl5ClCJw7qifsTsdw0M
+iCunp6lvAm9CAz5AZMjA+iFgFSILaPLTFHy8Z5kFLcTqhgHcQAgqGGlhiucuuXruO+b907GyQ4tx
+qWtWVuWmNWVgC9HAh3ra1tN7SgLj7cKFABq1GqNzkp6bDMtjutr8GfXMmIG/at4Uj9pmlpe+1ob1
+dEFU8Oq/xdnrATTIzagqHrHqMSLqZ4/vXwwaDoIDDlR3tULV9/pPhh+60F4z8c4SbDSPOHTMxT3f
+RtxO+ko9JZmka5PaGnjtNQVc16XYTR+23asReB6gcIu2xvvIhxtxASANdg5Nk+L/M6IZeFx0hnGO
+B4AVQ2YF8IJ58A1rr9tT41MtyaPhGjOTNuFPlnyAJ5V/CalwuAtGFq5fMokC+AzcL4p9KruIodE=
+)";
+
+// Generated with
+// $ echo -n "data" | openssl pkeyutl -sign -inkey rsa-private-4096.pem
 //     openssl pkeyutl -sign -inkey rsa-private.pem -pkeyopt digest:sha256 \
 //     -pkeyopt rsa_padding_mode:pss -pkeyopt rsa_pss_saltlen:32 | base64
 constexpr absl::string_view kRsaPssSignature = R"(
@@ -111,6 +165,39 @@ XPTS+QS3LmWx8Qv4wKUgdluDK0ZD+Dm2MAHfYaLq3J3LqJhjOkcnM2KuYJcUFj40edYkhwg1oYUc
 4EEKrSIh72Px6GGJa0nbRuCYx9vm7eH5zx/M4wIpOF+ScczoL6LkOyX8hFB2Ub9LxBh3OPahe/zT
 QKy0+gMjUGqjwTxq3EBlkngY0LWh2fE+COhoq6mAddViyVfJjHCApY1KZXPWgg5tzbpttmDf6yKT
 StTyAxt686GkeWL0kUzsmkGDQB1Ld6WJ+5KNlQ==
+)";
+
+// echo -n "data" | openssl dgst -sha256 -binary |
+//      openssl pkeyutl -sign -inkey rsa-private-4096.pem
+//      -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pss
+//      -pkeyopt rsa_pss_saltlen:32 | base64
+constexpr absl::string_view kRsaPss4096Sha256Signature = R"(
+WMEq0q7+U24gx2SOwzWRI0M7aoYAvpQnz5kPMKRA4Ortn0bcJIsKXy4g4facoLygo+hJ4KiMmCQP
+sbNoz/3hgfQcTc5XfPAVbkBkT3nnYcY77wib1f/VSQpdObcAs4bE7EyQrXUB4fkIdQlj96GvreP6
+Vak0xjpSEdv0mA2rXuPWKsXUObsX1Wkto3Kz5DNplzxO2ofroo3VL8Lu3jv3OHH+c/fc9mKO5LRW
+4nIaf6n8IkNq7zR2OioN3461+Uhc+5PpFBy9SCpdWJmlCYstN13Z8OLRi5zYhq8J8JBtJh1RkFDo
+mNrEbkGKDd+VIgbuYpS7zRtJRFuBcHBrOorTLy84YWOW5xIn1HeWax/mPneUs+gJk4Eu7wGaFDyh
+pJiLhw99AFn7b+Q2hCaQm+6/SW1YjBqKPX7Sd9JTjadsTO+t/3kEI31TN/2MTTAkTuRYswgm8dBs
+RXmKMGJmzC7SIMxg0+tmuVkwbz2CPnv5CLSH9F6MuN1uynSWCzurOkyQUAy6J/A49EO/EPm+HY1W
+F29Oz+3Hn++CDnBoB9fKorFWgqD0j6qwK6JDzT9e7Dn0Cp+EhbffU0BBYM0F6YgmbGN7Kf7XnrsY
+ywVS6k6dmdkTzFWyRWszkfBNW3iTaOraGuEvQ8qi/93vNUFefGqDg0Mn7pm2bVL0Dukpc5RpRjg=
+)";
+
+// Generated with
+// echo -n "data" | openssl dgst -sha512 -binary |
+//      openssl pkeyutl -sign -inkey rsa-private-4096.pem
+//      -pkeyopt digest:sha512 -pkeyopt rsa_padding_mode:pss
+//      -pkeyopt rsa_pss_saltlen:64 | base64
+constexpr absl::string_view kRsaPss4096Sha512Signature = R"(
+zMztdsH/VYhGe32DCt3aSn9gUhzPREQhkMUi6bCHTzdV9wrN2yuAPCWRmBPymXh2tB7chB/gbJWU
+YQeXYZtBgRnJKaPHhtQpeDFJwzbJt2eIiFA9RthLbo9kg1U9VuiXqfjKmkbj8Z5qbyJXVdl4f6hh
+Ai2aGXaEpliRPLRUyuJRIIOU4O8clTQAoHqHCOLNtfpYU2LSABL6nM9awf/OGD98SFJ7sLwBDtB0
+b7imZxBYayf0E1h1pza8XdHVYmTxQ+jdc5nYk+G27AzU0SZUviB5tdAt62xtFZiRi6vkk7FgfY+m
+1jqv9FmklOiBuuZDPjdfQ1zlYTLdQHrGVCgO9jenC+OkeVyKOPmVgvETBsSEkr/W7kf2OM84mksy
+mO10c0xqTCOi/cJd6zUYmi5IksU8DXQ1y8ZABzSoqIlRsOmyRQiW0CH+HmFl8HgtwZ9cSiKYtzag
+I5QnFhvzpt3/fI52HeAebUFsd9x4xNmvcDkdXTO/cHCJXSRRO88LKBtuKZHgiXEfyQubEcTKMJxe
+Q1sM0efzF/Br3aylzgzd+a5KvMq/0WGoVmHgvrH41lVxIlL2K1MHopfWz1Qi9sFVyB3MmIXIpcSL
+GGYPgxL+zvqtZL+01ury1ASUw28414i4LU7OUO3C1oQc/tR4eETXYZ++qSsS6XmT7Br8k7h1VpQ=
 )";
 
 // Generated with:
@@ -136,6 +223,14 @@ constexpr absl::string_view kKeyNameCrcPemError =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/6";
 constexpr absl::string_view kKeyNameEcdsaSecp256k1 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/7";
+constexpr absl::string_view kKeyNameRsa4096Sha256Pkcs1 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/8";
+constexpr absl::string_view kKeyNameRsa4096Sha512Pkcs1 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/9";
+constexpr absl::string_view kKeyNameRsaPss4096Sha256 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/10";
+constexpr absl::string_view kKeyNameRsaPss4096Sha512 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/11";
 
 class TestGcpKmsPublicKeyVerify : public testing::Test {
  public:
@@ -167,11 +262,31 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_2048_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
             response.set_pem(kRsaPublicKey);
+          } else if (request.name() == kKeyNameRsa4096Sha256Pkcs1) {
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA256);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.set_pem(kRsa4096PublicKey);
+          } else if (request.name() == kKeyNameRsa4096Sha512Pkcs1) {
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.set_pem(kRsa4096PublicKey);
           } else if (request.name() == kKeyNameRsaPss) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
             response.set_pem(kRsaPublicKey);
+          } else if (request.name() == kKeyNameRsaPss4096Sha256) {
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA256);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.set_pem(kRsa4096PublicKey);
+          } else if (request.name() == kKeyNameRsaPss4096Sha512) {
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA512);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.set_pem(kRsa4096PublicKey);
           } else if (request.name() == kKeyNameEcdsaSecp256k1) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::EC_SIGN_SECP256K1_SHA256);
@@ -302,12 +417,52 @@ TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPkcs1InvalidSignature) {
                        HasSubstr("Invalid signature")));
 }
 
+TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsa4096Sha256Pkcs1Success) {
+  ExpectGetPublicKey(1);
+  auto kms_verifier =
+      CreateGcpKmsPublicKeyVerify(kKeyNameRsa4096Sha256Pkcs1, kms_client_);
+  EXPECT_THAT(kms_verifier.status(), IsOk());
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsa4096Sha256Pkcs1Signature, &signature));
+  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsa4096Sha512Pkcs1Success) {
+  ExpectGetPublicKey(1);
+  auto kms_verifier =
+      CreateGcpKmsPublicKeyVerify(kKeyNameRsa4096Sha512Pkcs1, kms_client_);
+  EXPECT_THAT(kms_verifier.status(), IsOk());
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsa4096Sha512Pkcs1Signature, &signature));
+  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
+}
+
 TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPssSuccess) {
   ExpectGetPublicKey(1);
   auto kms_verifier = CreateGcpKmsPublicKeyVerify(kKeyNameRsaPss, kms_client_);
   EXPECT_THAT(kms_verifier.status(), IsOk());
   std::string signature;
   ASSERT_TRUE(absl::Base64Unescape(kRsaPssSignature, &signature));
+  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPss4096Sha256Success) {
+  ExpectGetPublicKey(1);
+  auto kms_verifier =
+      CreateGcpKmsPublicKeyVerify(kKeyNameRsaPss4096Sha256, kms_client_);
+  EXPECT_THAT(kms_verifier.status(), IsOk());
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsaPss4096Sha256Signature, &signature));
+  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPss4096Sha512Success) {
+  ExpectGetPublicKey(1);
+  auto kms_verifier =
+      CreateGcpKmsPublicKeyVerify(kKeyNameRsaPss4096Sha512, kms_client_);
+  EXPECT_THAT(kms_verifier.status(), IsOk());
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsaPss4096Sha512Signature, &signature));
   EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
 }
 
@@ -370,6 +525,58 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPkcs1Success) {
   EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
 }
 
+
+TEST_F(TestGcpKmsPublicKeyVerify,
+       GetSignaturePublicKeyRsa4096Sha256Pkcs1Success) {
+  ExpectGetPublicKey(1);
+  auto tink_key =
+      GetSignaturePublicKey(kKeyNameRsa4096Sha256Pkcs1, kms_client_);
+  EXPECT_THAT(tink_key.status(), IsOk());
+
+  // Verify a signature with the key.
+  auto tink_keyset_handle =
+      KeysetHandleBuilder()
+          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
+              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true))
+          .Build();
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsa4096Sha256Pkcs1Signature, &signature));
+
+  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
+      crypto::tink::ConfigSignatureV0());
+  EXPECT_THAT(verifier, IsOk());
+  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
+}
+
+
+TEST_F(TestGcpKmsPublicKeyVerify,
+       GetSignaturePublicKeyRsa4096Sha512Pkcs1Success) {
+  ExpectGetPublicKey(1);
+  auto tink_key =
+      GetSignaturePublicKey(kKeyNameRsa4096Sha512Pkcs1, kms_client_);
+  EXPECT_THAT(tink_key.status(), IsOk());
+
+  // Verify a signature with the key.
+  auto tink_keyset_handle =
+      KeysetHandleBuilder()
+          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
+              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true))
+          .Build();
+
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsa4096Sha512Pkcs1Signature, &signature));
+
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
+      crypto::tink::ConfigSignatureV0());
+  EXPECT_THAT(verifier, IsOk());
+  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
+}
+
 TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPssSuccess) {
   ExpectGetPublicKey(1);
   auto tink_key = GetSignaturePublicKey(kKeyNameRsaPss, kms_client_);
@@ -386,6 +593,55 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPssSuccess) {
 
   std::string signature;
   ASSERT_TRUE(absl::Base64Unescape(kRsaPssSignature, &signature));
+
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
+      crypto::tink::ConfigSignatureV0());
+  EXPECT_THAT(verifier, IsOk());
+  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify,
+       GetSignaturePublicKeyRsaPss4096Sha256Success) {
+  ExpectGetPublicKey(1);
+  auto tink_key = GetSignaturePublicKey(kKeyNameRsaPss4096Sha256, kms_client_);
+  EXPECT_THAT(tink_key.status(), IsOk());
+
+  // Verify a signature with the key.
+  auto tink_keyset_handle =
+      KeysetHandleBuilder()
+          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
+              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true))
+          .Build();
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsaPss4096Sha256Signature, &signature));
+
+  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
+      crypto::tink::ConfigSignatureV0());
+  EXPECT_THAT(verifier, IsOk());
+  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
+}
+
+
+TEST_F(TestGcpKmsPublicKeyVerify,
+       GetSignaturePublicKeyRsaPss4096Sha512Success) {
+  ExpectGetPublicKey(1);
+  auto tink_key = GetSignaturePublicKey(kKeyNameRsaPss4096Sha512, kms_client_);
+  EXPECT_THAT(tink_key.status(), IsOk());
+
+  // Verify a signature with the key.
+  auto tink_keyset_handle =
+      KeysetHandleBuilder()
+          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
+              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true))
+          .Build();
+
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kRsaPss4096Sha512Signature, &signature));
 
   EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
   auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
