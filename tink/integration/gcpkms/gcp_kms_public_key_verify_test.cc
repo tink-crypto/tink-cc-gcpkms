@@ -75,6 +75,25 @@ zI4jNZYWfcOFOjtJi7o=
 )";
 
 // Generated with
+// $ openssl ec -in ecdsa-private.pem -pubout -out ecdsa-public.pem
+// after generating the private key with
+// $ openssl ecparam -name secp384r1 -genkey -noout -out ecdsa-private.pem
+constexpr absl::string_view kEcdsa384PublicKey = R"(
+-----BEGIN PUBLIC KEY-----
+MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEvhSzPPgaNlVa7ALdPv2TU/y7zcztJKMW
+Uyb4EFljhW+HwMedJ9rq58P9vCO81GK+uzMElfKXwyh9Hwki3OrHw/U/QpEHrYAc
+mjodwJBbZu8a/6Oc2bXN96IwqOhAM70l
+-----END PUBLIC KEY-----
+)";
+
+// Generated with
+// $ echo -n "data" | openssl dgst -sha384 -sign ecdsa-private.pem | base64
+constexpr absl::string_view kEcdsa384Signature = R"(
+MGUCMEJreAXQPgGuVKNEctuQRAh8sbdWbnxwbOIERx6A7KrXfx/VIGYsEIX9OjIgNGc+pwIxAOVN
+n7DccgsZjhOwaL+HsI0RqbBFxRIaLQjlO9JT5BWxbsRX/7nio7krXpcfXFhnDg==
+)";
+
+// Generated with
 // $ openssl rsa -in rsa-private.pem -pubout > rsa-public.pem
 // after generating the private key with
 // $ openssl genrsa -out rsa-private.pem 2048
@@ -231,6 +250,8 @@ constexpr absl::string_view kKeyNameRsaPss4096Sha256 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/10";
 constexpr absl::string_view kKeyNameRsaPss4096Sha512 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/11";
+constexpr absl::string_view kKeyNameEcdsa384 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/12";
 
 class TestGcpKmsPublicKeyVerify : public testing::Test {
  public:
@@ -257,6 +278,11 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
                 kmsV1::CryptoKeyVersion::EC_SIGN_P256_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
             response.set_pem(kEcdsaPublicKey);
+          } else if (request.name() == kKeyNameEcdsa384) {
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::EC_SIGN_P384_SHA384);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.set_pem(kEcdsa384PublicKey);
           } else if (request.name() == kKeyNameRsaPkcs1) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_2048_SHA256);
@@ -478,7 +504,7 @@ TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPssInvalidSignature) {
                        HasSubstr("Invalid signature")));
 }
 
-TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsaSuccess) {
+TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsa256Success) {
   ExpectGetPublicKey(1);
   auto tink_key = GetSignaturePublicKey(kKeyNameEcdsa, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
@@ -494,6 +520,29 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsaSuccess) {
 
   std::string signature;
   ASSERT_TRUE(absl::Base64Unescape(kEcdsaSignature, &signature));
+
+  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
+      crypto::tink::ConfigSignatureV0());
+  EXPECT_THAT(verifier, IsOk());
+  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
+}
+
+TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsa384Success) {
+  ExpectGetPublicKey(1);
+  auto tink_key = GetSignaturePublicKey(kKeyNameEcdsa384, kms_client_);
+  EXPECT_THAT(tink_key.status(), IsOk());
+
+  // Verify a signature with the key.
+  auto tink_keyset_handle =
+      KeysetHandleBuilder()
+          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
+              tink_key.value(), crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true))
+          .Build();
+  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
+
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kEcdsa384Signature, &signature));
 
   auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
       crypto::tink::ConfigSignatureV0());

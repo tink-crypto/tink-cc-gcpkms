@@ -73,6 +73,7 @@ bool IsValidAlgorithm(
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA256:
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512:
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
+    case CryptoKeyVersion::EC_SIGN_P384_SHA384:
       return true;
     default:
       return false;
@@ -85,6 +86,8 @@ StatusOr<size_t> GetKeySizeFromAlgorithm(
   switch (algorithm) {
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
       return 256;
+    case CryptoKeyVersion::EC_SIGN_P384_SHA384:
+      return 384;
     case CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256:
     case CryptoKeyVersion::RSA_SIGN_PKCS1_2048_SHA256:
       return 2048;
@@ -115,6 +118,8 @@ StatusOr<HashType> GetHashFromAlgorithm(
     case CryptoKeyVersion::RSA_SIGN_PKCS1_3072_SHA256:
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA256:
       return HashType::SHA256;
+    case CryptoKeyVersion::EC_SIGN_P384_SHA384:
+      return HashType::SHA384;
     case CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA512:
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512:
       return HashType::SHA512;
@@ -193,7 +198,8 @@ StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPemKey(
   SignaturePemKeysetReaderBuilder builder = SignaturePemKeysetReaderBuilder(
       SignaturePemKeysetReaderBuilder::PemReaderType::PUBLIC_KEY_VERIFY);
   switch (algorithm) {
-    case CryptoKeyVersion::EC_SIGN_P256_SHA256: {
+    case CryptoKeyVersion::EC_SIGN_P256_SHA256:
+    case CryptoKeyVersion::EC_SIGN_P384_SHA384: {
       builder.Add({.serialized_key = std::string(pem_key),
                    .parameters = {
                        .key_type = PemKeyType::PEM_EC,
