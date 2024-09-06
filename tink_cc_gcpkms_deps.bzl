@@ -10,15 +10,16 @@ def _grpc_deps():
     if "com_google_protobuf" not in native.existing_rules():
         http_archive(
             name = "com_google_protobuf",
-            sha256 = "660ce016f987550bc1ccec4a6ee4199afb871799b696227098e3641476a7d566",
-            strip_prefix = "protobuf-b2b7a51158418f41cff0520894836c15b1738721",
+            sha256 = "387478260190c540388839a3449c635a69708d92fc38ea6e2364b1196db90ea5",
+            strip_prefix = "protobuf-2434ef2adf0c74149b9d547ac5fb545a1ff8b6b5",
             urls = [
-                # https://github.com/protocolbuffers/protobuf/commits/v24.3
-                "https://storage.googleapis.com/grpc-bazel-mirror/github.com/protocolbuffers/protobuf/archive/b2b7a51158418f41cff0520894836c15b1738721.tar.gz",
-                "https://github.com/protocolbuffers/protobuf/archive/b2b7a51158418f41cff0520894836c15b1738721.tar.gz",
+                # https://github.com/protocolbuffers/protobuf/commits/v26.1
+                "https://storage.googleapis.com/grpc-bazel-mirror/github.com/protocolbuffers/protobuf/archive/2434ef2adf0c74149b9d547ac5fb545a1ff8b6b5.tar.gz",
+                "https://github.com/protocolbuffers/protobuf/archive/2434ef2adf0c74149b9d547ac5fb545a1ff8b6b5.tar.gz",
             ],
             patches = [
                 "@com_github_grpc_grpc//third_party:protobuf.patch",
+                "@com_github_grpc_grpc//third_party:protobuf.10007.patch",
             ],
             patch_args = ["-p1"],
         )
@@ -38,11 +39,11 @@ def _grpc_deps():
     if "envoy_api" not in native.existing_rules():
         http_archive(
             name = "envoy_api",
-            sha256 = "6fd3496c82919a433219733819a93b56699519a193126959e9c4fedc25e70663",
-            strip_prefix = "data-plane-api-e53e7bbd012f81965f2e79848ad9a58ceb67201f",
+            sha256 = "ddd3beedda1178a79e0d988f76f362002aced09749452515853f106e22bd2249",
+            strip_prefix = "data-plane-api-78f198cf96ecdc7120ef640406770aa01af775c4",
             urls = [
-                "https://storage.googleapis.com/grpc-bazel-mirror/github.com/envoyproxy/data-plane-api/archive/e53e7bbd012f81965f2e79848ad9a58ceb67201f.tar.gz",
-                "https://github.com/envoyproxy/data-plane-api/archive/e53e7bbd012f81965f2e79848ad9a58ceb67201f.tar.gz",
+                "https://storage.googleapis.com/grpc-bazel-mirror/github.com/envoyproxy/data-plane-api/archive/78f198cf96ecdc7120ef640406770aa01af775c4.tar.gz",
+                "https://github.com/envoyproxy/data-plane-api/archive/78f198cf96ecdc7120ef640406770aa01af775c4.tar.gz",
             ],
         )
 
@@ -99,12 +100,12 @@ def _grpc_deps():
         )
 
     if not native.existing_rule("com_github_grpc_grpc"):
-        # Release from 2023-11-15.
+        # Release from 2023-08-16.
         http_archive(
             name = "com_github_grpc_grpc",
-            sha256 = "03ca78ecf847783ac6e895dc7a24834e86981bd8c5408cf86f6ccee886bd3079",
-            strip_prefix = "grpc-1.59.3",
-            urls = ["https://github.com/grpc/grpc/archive/refs/tags/v1.59.3.zip"],
+            sha256 = "14f301f9a6c295f2d3fdae4704182721097a996fb2211d05213096321fc572ac",
+            strip_prefix = "grpc-1.65.5",
+            urls = ["https://github.com/grpc/grpc/archive/refs/tags/v1.65.5.zip"],
         )
 
 def tink_cc_gcpkms_deps():
@@ -148,9 +149,11 @@ def tink_cc_gcpkms_deps():
         # Release from 2023-09-18.
         http_archive(
             name = "com_google_absl",
-            sha256 = "497ebdc3a4885d9209b9bd416e8c3f71e7a1fb8af249f6c2a80b7cbeefcd7e21",
-            strip_prefix = "abseil-cpp-20230802.1",
-            urls = ["https://github.com/abseil/abseil-cpp/archive/refs/tags/20230802.1.zip"],
+            sha256 = "d0f9a580463375978f5ae4e04da39c3664bdaa23724b2f0bf00896a02bf801b9",
+            strip_prefix = "abseil-cpp-20240116.0",
+            urls = [
+                "https://github.com/abseil/abseil-cpp/archive/refs/tags/20240116.0.zip",
+            ],
         )
 
     if not native.existing_rule("rules_python"):
