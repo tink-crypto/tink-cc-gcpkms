@@ -340,10 +340,15 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
 };
 
 TEST_F(TestGcpKmsPublicKeyVerify, NullKmsClientFails) {
-  EXPECT_THAT(CreateGcpKmsPublicKeyVerify(kKeyNameEcdsa, /*kms_client=*/nullptr)
-                  .status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("KMS client cannot be null")));
+  // The `kms_client` parameter is annotated nonnull, but we want to test the
+  // defensive null check. Use a variable instead of passing nullptr directly
+  // to avoid a `-Wnonnull` warning.
+  std::shared_ptr<KeyManagementServiceClient> null_kms_client = nullptr;
+  EXPECT_THAT(
+      CreateGcpKmsPublicKeyVerify(kKeyNameEcdsa, std::move(null_kms_client))
+          .status(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("KMS client cannot be null")));
 }
 
 TEST_F(TestGcpKmsPublicKeyVerify, EmptyKeyNameFails) {
