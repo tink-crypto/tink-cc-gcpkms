@@ -146,13 +146,13 @@ def tink_cc_gcpkms_deps():
         )
 
     if not native.existing_rule("com_google_absl"):
-        # Release from 2023-09-18.
+        # Release from 2024-08-01.
         http_archive(
             name = "com_google_absl",
-            sha256 = "d0f9a580463375978f5ae4e04da39c3664bdaa23724b2f0bf00896a02bf801b9",
-            strip_prefix = "abseil-cpp-20240116.0",
+            sha256 = "f50e5ac311a81382da7fa75b97310e4b9006474f9560ac46f54a9967f07d4ae3",
+            strip_prefix = "abseil-cpp-20240722.0",
             urls = [
-                "https://github.com/abseil/abseil-cpp/archive/refs/tags/20240116.0.zip",
+                "https://github.com/abseil/abseil-cpp/releases/download/20240722.0/abseil-cpp-20240722.0.tar.gz",
             ],
         )
 
