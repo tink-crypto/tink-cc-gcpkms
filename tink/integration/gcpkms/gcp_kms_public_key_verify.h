@@ -22,6 +22,7 @@
 #include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
+#include "tink/partial_key_access_token.h"
 #include "tink/public_key_verify.h"
 #include "tink/signature/signature_public_key.h"
 #include "tink/util/statusor.h"
@@ -48,19 +49,39 @@ CreateGcpKmsPublicKeyVerify(
         std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>>
         kms_client);
 
-// Retrieves the Tink signature public key with the specified CryptoKeyVersion
+// Creates a Tink signature public key with the specified CryptoKeyVersion
 // from Cloud KMS.
 //
 // Valid values for `key_name` have the following format:
 //    projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*.
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
-crypto::tink::util::StatusOr<
-    std::shared_ptr<const crypto::tink::SignaturePublicKey>>
-GetSignaturePublicKey(
+crypto::tink::util::StatusOr<std::shared_ptr<const SignaturePublicKey>>
+CreateSignaturePublicKey(
     absl::string_view key_name,
     absl::Nonnull<
         std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>>
         kms_client);
+
+// Creates a Tink signature public key from a PEM-formatted key previously
+// fetched from KMS, and the associated CryptoKeyVersion algorithm.
+//
+// See
+// https://cloud.google.com/kms/docs/reference/rest/v1/projects.locations.keyRings.cryptoKeys.cryptoKeyVersions/getPublicKey
+// for more info about fetching the public key from Cloud KMS.
+crypto::tink::util::StatusOr<std::unique_ptr<SignaturePublicKey>>
+CreateSignaturePublicKeyWithNoRpcs(
+    absl::string_view pem,
+    google::cloud::kms::v1::CryptoKeyVersion::CryptoKeyVersionAlgorithm
+        algorithm,
+    PartialKeyAccessToken token);
+
+// Creates a new PublicKeyVerify object that is bound to the Tink signature
+// public key.
+//
+// The input key can be obtained through `CreateSignaturePublicKeyWithNoRpcs`,
+// which does not call KMS and instead takes in a PEM-formatted key directly.
+crypto::tink::util::StatusOr<std::unique_ptr<PublicKeyVerify>>
+CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key);
 
 }  // namespace gcpkms
 }  // namespace integration

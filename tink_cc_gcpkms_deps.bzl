@@ -168,12 +168,12 @@ def tink_cc_gcpkms_deps():
         )
 
     if not native.existing_rule("tink_cc"):
-        # Commit from 2024-08-02.
+        # Commit from 2024-09-20.
         http_archive(
             name = "tink_cc",
-            sha256 = "a56bb6bfbeafbf5ac91ecdf6a3f7279dd14bda4f3048351f31d240da27347242",
-            strip_prefix = "tink-cc-54cd5f0f47f9fd02fdeeb8c7d3c68d13eb36952a",
-            urls = ["https://github.com/tink-crypto/tink-cc/archive/54cd5f0f47f9fd02fdeeb8c7d3c68d13eb36952a.tar.gz"],
+            sha256 = "15f270b9e4999dc7edf09309186b1982ca7501a8a40b2278282d27185ab1f729",
+            strip_prefix = "tink-cc-5d8db8c9dcd1192169a4f3ba1560cc76e77ceddb",
+            urls = ["https://github.com/tink-crypto/tink-cc/archive/5d8db8c9dcd1192169a4f3ba1560cc76e77ceddb.tar.gz"],
         )
 
     if not native.existing_rule("com_googlesource_code_re2"):

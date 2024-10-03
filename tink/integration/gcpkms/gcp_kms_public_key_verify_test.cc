@@ -33,6 +33,7 @@
 #include "tink/key_status.h"
 #include "tink/keyset_handle.h"
 #include "tink/keyset_handle_builder.h"
+#include "tink/partial_key_access.h"
 #include "tink/public_key_verify.h"
 #include "tink/signature/config_v0.h"
 #include "tink/signature/signature_config.h"
@@ -50,6 +51,7 @@ using ::crypto::tink::test::IsOk;
 using ::crypto::tink::test::StatusIs;
 using ::google::cloud::Status;
 using ::google::cloud::StatusOr;
+using ::google::cloud::kms::v1::CryptoKeyVersion;
 using ::google::cloud::kms_v1::KeyManagementServiceClient;
 using ::google::cloud::kms_v1_mocks::MockKeyManagementServiceConnection;
 using ::testing::HasSubstr;
@@ -418,6 +420,7 @@ TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyEcdsaInvalidSignature) {
   EXPECT_THAT(kms_verifier.status(), IsOk());
   std::string signature;
   ASSERT_TRUE(absl::Base64Unescape(kEcdsaSignature, &signature));
+  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
   signature[0] ^= 0x01;
   EXPECT_THAT((*kms_verifier)->Verify(signature, kData),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -511,7 +514,8 @@ TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPssInvalidSignature) {
 
 TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsa256Success) {
   ExpectGetPublicKey(1);
-  auto tink_key = GetSignaturePublicKey(kKeyNameEcdsa, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameEcdsa, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 
   // Verify a signature with the key.
@@ -534,7 +538,8 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsa256Success) {
 
 TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsa384Success) {
   ExpectGetPublicKey(1);
-  auto tink_key = GetSignaturePublicKey(kKeyNameEcdsa384, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameEcdsa384, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 
   // Verify a signature with the key.
@@ -557,7 +562,8 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsa384Success) {
 
 TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPkcs1Success) {
   ExpectGetPublicKey(1);
-  auto tink_key = GetSignaturePublicKey(kKeyNameRsaPkcs1, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameRsaPkcs1, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 
   // Verify a signature with the key.
@@ -583,8 +589,8 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPkcs1Success) {
 TEST_F(TestGcpKmsPublicKeyVerify,
        GetSignaturePublicKeyRsa4096Sha256Pkcs1Success) {
   ExpectGetPublicKey(1);
-  auto tink_key =
-      GetSignaturePublicKey(kKeyNameRsa4096Sha256Pkcs1, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameRsa4096Sha256Pkcs1, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 
   // Verify a signature with the key.
@@ -609,8 +615,8 @@ TEST_F(TestGcpKmsPublicKeyVerify,
 TEST_F(TestGcpKmsPublicKeyVerify,
        GetSignaturePublicKeyRsa4096Sha512Pkcs1Success) {
   ExpectGetPublicKey(1);
-  auto tink_key =
-      GetSignaturePublicKey(kKeyNameRsa4096Sha512Pkcs1, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameRsa4096Sha512Pkcs1, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 
   // Verify a signature with the key.
@@ -633,7 +639,8 @@ TEST_F(TestGcpKmsPublicKeyVerify,
 
 TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPssSuccess) {
   ExpectGetPublicKey(1);
-  auto tink_key = GetSignaturePublicKey(kKeyNameRsaPss, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameRsaPss, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 
   // Verify a signature with the key.
@@ -658,7 +665,8 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPssSuccess) {
 TEST_F(TestGcpKmsPublicKeyVerify,
        GetSignaturePublicKeyRsaPss4096Sha256Success) {
   ExpectGetPublicKey(1);
-  auto tink_key = GetSignaturePublicKey(kKeyNameRsaPss4096Sha256, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameRsaPss4096Sha256, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 
   // Verify a signature with the key.
@@ -683,7 +691,8 @@ TEST_F(TestGcpKmsPublicKeyVerify,
 TEST_F(TestGcpKmsPublicKeyVerify,
        GetSignaturePublicKeyRsaPss4096Sha512Success) {
   ExpectGetPublicKey(1);
-  auto tink_key = GetSignaturePublicKey(kKeyNameRsaPss4096Sha512, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameRsaPss4096Sha512, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 
   // Verify a signature with the key.
@@ -706,7 +715,8 @@ TEST_F(TestGcpKmsPublicKeyVerify,
 
 TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsaSecp256k1Fails) {
   ExpectGetPublicKey(1);
-  auto tink_key = GetSignaturePublicKey(kKeyNameEcdsaSecp256k1, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameEcdsaSecp256k1, kms_client_);
   EXPECT_THAT(tink_key.status(), StatusIs(absl::StatusCode::kInvalidArgument,
                                           HasSubstr("Unsupported algorithm")));
 }
@@ -714,9 +724,108 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsaSecp256k1Fails) {
 TEST_F(TestGcpKmsPublicKeyVerify, CallRegisterTwiceOk) {
   ASSERT_THAT(SignatureConfig::Register(), IsOk());
   ExpectGetPublicKey(1);
-  auto tink_key = GetSignaturePublicKey(kKeyNameEcdsa, kms_client_);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
+      CreateSignaturePublicKey(kKeyNameEcdsa, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 }
+
+/*** OFFLINE VERSION TESTS ***/
+
+TEST_F(TestGcpKmsPublicKeyVerify, InvalidSignaturePublicKeyOfflineVerifyFails) {
+  ExpectGetPublicKey(1);
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> key =
+      CreateSignaturePublicKey(kKeyNameEcdsa, kms_client_);
+  EXPECT_THAT(key.status(), IsOk());
+
+  // The signature public key is not a GcpSignaturePublicKey.
+  auto kms_verifier = CreateGcpKmsPublicKeyVerifyWithNoRpcs(**key);
+  EXPECT_THAT(kms_verifier.status(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("Invalid SignaturePublicKey")));
+}
+
+TEST(TestCreateSignaturePublicKeyWithNoRpcs, PublicKeyFromEcdsaSecp256k1Fails) {
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
+      kms_signature_public_key = CreateSignaturePublicKeyWithNoRpcs(
+          kSecp256k1PublicKey, CryptoKeyVersion::EC_SIGN_SECP256K1_SHA256,
+          GetPartialKeyAccess());
+  EXPECT_THAT(kms_signature_public_key.status(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("Unsupported algorithm")));
+}
+
+TEST(TestCreateSignaturePublicKeyWithNoRpcs, PublicKeyFromEcdsaSuccess) {
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
+      kms_signature_public_key = CreateSignaturePublicKeyWithNoRpcs(
+          kEcdsaPublicKey, CryptoKeyVersion::EC_SIGN_P256_SHA256,
+          GetPartialKeyAccess());
+  EXPECT_THAT(kms_signature_public_key.status(), IsOk());
+}
+
+TEST(TestPublicKeyVerifyWithNoRpcs, InvalidSignatureFails) {
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
+      kms_signature_public_key = CreateSignaturePublicKeyWithNoRpcs(
+          kEcdsaPublicKey, CryptoKeyVersion::EC_SIGN_P256_SHA256,
+          GetPartialKeyAccess());
+  EXPECT_THAT(kms_signature_public_key.status(), IsOk());
+  auto kms_verifier =
+      CreateGcpKmsPublicKeyVerifyWithNoRpcs(**kms_signature_public_key);
+  EXPECT_THAT(kms_verifier.status(), IsOk());
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(kEcdsaSignature, &signature));
+  signature[0] ^= 0x01;
+  EXPECT_THAT((*kms_verifier)->Verify(signature, kData),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("Invalid signature")));
+}
+
+struct OfflinePemVerificationParams {
+  absl::string_view public_key;
+  absl::string_view signature;
+  CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm;
+};
+
+std::vector<OfflinePemVerificationParams>
+GetOfflinePemVerificationValidCombinations() {
+  return {
+      {kEcdsaPublicKey, kEcdsaSignature, CryptoKeyVersion::EC_SIGN_P256_SHA256},
+      {kEcdsa384PublicKey, kEcdsa384Signature,
+       CryptoKeyVersion::EC_SIGN_P384_SHA384},
+      {kRsaPublicKey, kRsaPkcs1Signature,
+       CryptoKeyVersion::RSA_SIGN_PKCS1_2048_SHA256},
+      {kRsaPublicKey, kRsaPssSignature,
+       CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256},
+      {kRsa4096PublicKey, kRsa4096Sha256Pkcs1Signature,
+       CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA256},
+      {kRsa4096PublicKey, kRsa4096Sha512Pkcs1Signature,
+       CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512},
+      {kRsa4096PublicKey, kRsaPss4096Sha256Signature,
+       CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA256},
+      {kRsa4096PublicKey, kRsaPss4096Sha512Signature,
+       CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA512},
+  };
+}
+
+using GcpKmsPublicKeyVerifyOfflineTest =
+    testing::TestWithParam<OfflinePemVerificationParams>;
+
+TEST_P(GcpKmsPublicKeyVerifyOfflineTest, PublicKeyVerifySuccess) {
+  OfflinePemVerificationParams test_params = GetParam();
+  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
+      kms_signature_public_key = CreateSignaturePublicKeyWithNoRpcs(
+          test_params.public_key, test_params.algorithm, GetPartialKeyAccess());
+  EXPECT_THAT(kms_signature_public_key.status(), IsOk());
+  auto kms_verifier =
+      CreateGcpKmsPublicKeyVerifyWithNoRpcs(**kms_signature_public_key);
+  EXPECT_THAT(kms_verifier.status(), IsOk());
+  std::string signature;
+  ASSERT_TRUE(absl::Base64Unescape(test_params.signature, &signature));
+  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    GcpKmsPublicKeyVerifyOfflineTests, GcpKmsPublicKeyVerifyOfflineTest,
+    testing::ValuesIn(GetOfflinePemVerificationValidCombinations()));
 
 }  // namespace
 }  // namespace gcpkms

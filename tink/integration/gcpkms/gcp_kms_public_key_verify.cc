@@ -80,6 +80,109 @@ bool IsValidAlgorithm(
   }
 }
 
+// Parameters used by the GcpSignaturePublicKey class.
+class GcpSignaturePublicKeyParameters : public SignatureParameters {
+ public:
+  // Copyable and movable.
+  GcpSignaturePublicKeyParameters(
+      const GcpSignaturePublicKeyParameters& other) = default;
+  GcpSignaturePublicKeyParameters& operator=(
+      const GcpSignaturePublicKeyParameters& other) = default;
+  GcpSignaturePublicKeyParameters(GcpSignaturePublicKeyParameters&& other) =
+      default;
+  GcpSignaturePublicKeyParameters& operator=(
+      GcpSignaturePublicKeyParameters&& other) = default;
+
+  // Creates a new GcpSignaturePublicKey parameters object.
+  static StatusOr<GcpSignaturePublicKeyParameters> Create(
+      absl::string_view pem,
+      CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
+    if (!IsValidAlgorithm(algorithm)) {
+      return util::Status(absl::StatusCode::kInvalidArgument,
+                          absl::StrCat("Unsupported algorithm: ", algorithm));
+    }
+
+    return GcpSignaturePublicKeyParameters(pem, algorithm);
+  }
+
+  absl::string_view GetPem() const { return pem_; }
+  CryptoKeyVersion::CryptoKeyVersionAlgorithm GetAlgorithm() const {
+    return algorithm_;
+  }
+
+  bool HasIdRequirement() const override {
+    // No ID requirements, we don't prepend/append values to signatures.
+    return false;
+  }
+
+  bool operator==(const Parameters& other) const override {
+    const GcpSignaturePublicKeyParameters* that =
+        dynamic_cast<const GcpSignaturePublicKeyParameters*>(&other);
+    if (that == nullptr) {
+      return false;
+    }
+    return pem_ == that->pem_ && algorithm_ == that->algorithm_;
+  }
+
+ private:
+  explicit GcpSignaturePublicKeyParameters(
+      absl::string_view pem,
+      CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm)
+      : pem_(pem), algorithm_(algorithm) {}
+
+  absl::string_view pem_;
+  CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm_;
+};
+
+class GcpSignaturePublicKey : public SignaturePublicKey {
+ public:
+  // Copyable and movable.
+  GcpSignaturePublicKey(const GcpSignaturePublicKey& other) = default;
+  GcpSignaturePublicKey& operator=(const GcpSignaturePublicKey& other) =
+      default;
+  GcpSignaturePublicKey(GcpSignaturePublicKey&& other) = default;
+  GcpSignaturePublicKey& operator=(GcpSignaturePublicKey&& other) = default;
+
+  static StatusOr<GcpSignaturePublicKey> Create(
+      absl::string_view pem,
+      CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
+      PartialKeyAccessToken token) {
+    StatusOr<GcpSignaturePublicKeyParameters> params =
+        GcpSignaturePublicKeyParameters::Create(pem, algorithm);
+    if (!params.ok()) {
+      return params.status();
+    }
+    return GcpSignaturePublicKey(*params);
+  }
+
+  absl::string_view GetPem() const { return GetParameters().GetPem(); }
+  CryptoKeyVersion::CryptoKeyVersionAlgorithm GetAlgorithm() const {
+    return GetParameters().GetAlgorithm();
+  }
+
+  absl::string_view GetOutputPrefix() const override { return ""; }
+  const GcpSignaturePublicKeyParameters& GetParameters() const override {
+    return parameters_;
+  }
+  absl::optional<int32_t> GetIdRequirement() const override {
+    // No ID requirement.
+    return absl::nullopt;
+  }
+
+  bool operator==(const Key& other) const override {
+    const GcpSignaturePublicKey* that =
+        dynamic_cast<const GcpSignaturePublicKey*>(&other);
+    if (that == nullptr) return false;
+    return GetParameters() == that->GetParameters();
+  }
+
+ private:
+  explicit GcpSignaturePublicKey(GcpSignaturePublicKeyParameters params)
+      : parameters_(params) {}
+
+  GcpSignaturePublicKeyParameters parameters_;
+};
+
 // Returns the proper key size in bits for the given KMS algorithm.
 StatusOr<size_t> GetKeySizeFromAlgorithm(
     const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
@@ -281,8 +384,7 @@ class GcpKmsPublicKeyVerify : public PublicKeyVerify {
 };
 }  // namespace
 
-StatusOr<std::shared_ptr<const crypto::tink::SignaturePublicKey>>
-GetSignaturePublicKey(
+StatusOr<std::shared_ptr<const SignaturePublicKey>> CreateSignaturePublicKey(
     absl::string_view key_name,
     absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
   auto gcp_kms_public_key = GetGcpKmsPublicKey(key_name, kms_client);
@@ -331,6 +433,40 @@ StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
   StatusOr<std::unique_ptr<PublicKeyVerify>> verifier =
       GetInternalVerifierForAlgorithm(gcp_kms_public_key->algorithm(),
                                       gcp_kms_public_key->pem());
+  if (!verifier.ok()) {
+    return verifier.status();
+  }
+  return absl::make_unique<GcpKmsPublicKeyVerify>(*std::move(verifier));
+}
+
+StatusOr<std::unique_ptr<SignaturePublicKey>>
+CreateSignaturePublicKeyWithNoRpcs(
+    absl::string_view pem,
+    CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
+    PartialKeyAccessToken token) {
+  StatusOr<GcpSignaturePublicKey> key =
+      GcpSignaturePublicKey::Create(pem, algorithm, token);
+  if (!key.ok()) {
+    return key.status();
+  }
+  return absl::make_unique<GcpSignaturePublicKey>(*key);
+}
+
+StatusOr<std::unique_ptr<PublicKeyVerify>>
+CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key) {
+  const GcpSignaturePublicKey* public_key =
+      dynamic_cast<const GcpSignaturePublicKey*>(&key);
+  if (public_key == nullptr) {
+    return util::Status(
+        absl::StatusCode::kInvalidArgument,
+        "Invalid SignaturePublicKey, not a GcpSignaturePublicKey.");
+  }
+  StatusOr<std::unique_ptr<PublicKeyVerify>> verifier =
+      GetInternalVerifierForAlgorithm(public_key->GetAlgorithm(),
+                                      public_key->GetPem());
+  if (!verifier.ok()) {
+    return verifier.status();
+  }
   return absl::make_unique<GcpKmsPublicKeyVerify>(*std::move(verifier));
 }
 
