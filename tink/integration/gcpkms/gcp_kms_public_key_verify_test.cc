@@ -255,6 +255,24 @@ constexpr absl::string_view kKeyNameRsaPss4096Sha512 =
 constexpr absl::string_view kKeyNameEcdsa384 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/12";
 
+struct GcpPublicKeyParams {
+  absl::string_view key_name;
+  absl::string_view signature;
+};
+
+std::vector<GcpPublicKeyParams> GcpPublicKeyParamsValidCombinations() {
+  return {
+      {kKeyNameEcdsa, kEcdsaSignature},
+      {kKeyNameEcdsa384, kEcdsa384Signature},
+      {kKeyNameRsaPkcs1, kRsaPkcs1Signature},
+      {kKeyNameRsaPss, kRsaPssSignature},
+      {kKeyNameRsa4096Sha256Pkcs1, kRsa4096Sha256Pkcs1Signature},
+      {kKeyNameRsa4096Sha512Pkcs1, kRsa4096Sha512Pkcs1Signature},
+      {kKeyNameRsaPss4096Sha256, kRsaPss4096Sha256Signature},
+      {kKeyNameRsaPss4096Sha512, kRsaPss4096Sha512Signature},
+  };
+}
+
 class TestGcpKmsPublicKeyVerify : public testing::Test {
  public:
   TestGcpKmsPublicKeyVerify()
@@ -405,101 +423,6 @@ TEST_F(TestGcpKmsPublicKeyVerify,
                        HasSubstr("Unsupported algorithm")));
 }
 
-TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyEcdsaSuccess) {
-  ExpectGetPublicKey(1);
-  auto kms_verifier = CreateGcpKmsPublicKeyVerify(kKeyNameEcdsa, kms_client_);
-  EXPECT_THAT(kms_verifier.status(), IsOk());
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kEcdsaSignature, &signature));
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyEcdsaInvalidSignature) {
-  ExpectGetPublicKey(1);
-  auto kms_verifier = CreateGcpKmsPublicKeyVerify(kKeyNameEcdsa, kms_client_);
-  EXPECT_THAT(kms_verifier.status(), IsOk());
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kEcdsaSignature, &signature));
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
-  signature[0] ^= 0x01;
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("Invalid signature")));
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPkcs1Success) {
-  ExpectGetPublicKey(1);
-  auto kms_verifier =
-      CreateGcpKmsPublicKeyVerify(kKeyNameRsaPkcs1, kms_client_);
-  EXPECT_THAT(kms_verifier.status(), IsOk());
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsaPkcs1Signature, &signature));
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPkcs1InvalidSignature) {
-  ExpectGetPublicKey(1);
-  auto kms_verifier =
-      CreateGcpKmsPublicKeyVerify(kKeyNameRsaPkcs1, kms_client_);
-  EXPECT_THAT(kms_verifier.status(), IsOk());
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsaPkcs1Signature, &signature));
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
-  signature[0] ^= 0x01;
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("Invalid signature")));
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsa4096Sha256Pkcs1Success) {
-  ExpectGetPublicKey(1);
-  auto kms_verifier =
-      CreateGcpKmsPublicKeyVerify(kKeyNameRsa4096Sha256Pkcs1, kms_client_);
-  EXPECT_THAT(kms_verifier.status(), IsOk());
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsa4096Sha256Pkcs1Signature, &signature));
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsa4096Sha512Pkcs1Success) {
-  ExpectGetPublicKey(1);
-  auto kms_verifier =
-      CreateGcpKmsPublicKeyVerify(kKeyNameRsa4096Sha512Pkcs1, kms_client_);
-  EXPECT_THAT(kms_verifier.status(), IsOk());
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsa4096Sha512Pkcs1Signature, &signature));
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPssSuccess) {
-  ExpectGetPublicKey(1);
-  auto kms_verifier = CreateGcpKmsPublicKeyVerify(kKeyNameRsaPss, kms_client_);
-  EXPECT_THAT(kms_verifier.status(), IsOk());
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsaPssSignature, &signature));
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPss4096Sha256Success) {
-  ExpectGetPublicKey(1);
-  auto kms_verifier =
-      CreateGcpKmsPublicKeyVerify(kKeyNameRsaPss4096Sha256, kms_client_);
-  EXPECT_THAT(kms_verifier.status(), IsOk());
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsaPss4096Sha256Signature, &signature));
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPss4096Sha512Success) {
-  ExpectGetPublicKey(1);
-  auto kms_verifier =
-      CreateGcpKmsPublicKeyVerify(kKeyNameRsaPss4096Sha512, kms_client_);
-  EXPECT_THAT(kms_verifier.status(), IsOk());
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsaPss4096Sha512Signature, &signature));
-  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
-}
-
 TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPssInvalidSignature) {
   ExpectGetPublicKey(1);
   auto kms_verifier = CreateGcpKmsPublicKeyVerify(kKeyNameRsaPss, kms_client_);
@@ -512,71 +435,46 @@ TEST_F(TestGcpKmsPublicKeyVerify, PublicKeyVerifyRsaPssInvalidSignature) {
                        HasSubstr("Invalid signature")));
 }
 
-TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsa256Success) {
+class GcpPublicKeyVerifyTest
+    : public testing::WithParamInterface<GcpPublicKeyParams>,
+      public TestGcpKmsPublicKeyVerify {};
+
+TEST_P(GcpPublicKeyVerifyTest, Success) {
+  GcpPublicKeyParams test_params = GetParam();
   ExpectGetPublicKey(1);
-  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
-      CreateSignaturePublicKey(kKeyNameEcdsa, kms_client_);
-  EXPECT_THAT(tink_key.status(), IsOk());
-
-  // Verify a signature with the key.
-  auto tink_keyset_handle =
-      KeysetHandleBuilder()
-          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
-              tink_key.value(), ::crypto::tink::KeyStatus::kEnabled,
-              /*is_primary=*/true))
-          .Build();
-  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
-
+  auto kms_verifier =
+      CreateGcpKmsPublicKeyVerify(test_params.key_name, kms_client_);
+  EXPECT_THAT(kms_verifier.status(), IsOk());
   std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kEcdsaSignature, &signature));
-
-  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
-      crypto::tink::ConfigSignatureV0());
-  EXPECT_THAT(verifier, IsOk());
-  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
+  ASSERT_TRUE(absl::Base64Unescape(test_params.signature, &signature));
+  EXPECT_THAT((*kms_verifier)->Verify(signature, kData), IsOk());
 }
 
-TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsa384Success) {
+INSTANTIATE_TEST_SUITE_P(
+    GcpPublicKeyVerifyTests, GcpPublicKeyVerifyTest,
+    testing::ValuesIn(GcpPublicKeyParamsValidCombinations()));
+
+class GetSignaturePublicKeyTest
+    : public testing::WithParamInterface<GcpPublicKeyParams>,
+      public TestGcpKmsPublicKeyVerify {};
+
+TEST_P(GetSignaturePublicKeyTest, Success) {
+  GcpPublicKeyParams test_params = GetParam();
   ExpectGetPublicKey(1);
   absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
-      CreateSignaturePublicKey(kKeyNameEcdsa384, kms_client_);
+      CreateSignaturePublicKey(test_params.key_name, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
 
   // Verify a signature with the key.
   auto tink_keyset_handle =
       KeysetHandleBuilder()
           .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
-              tink_key.value(), crypto::tink::KeyStatus::kEnabled,
+              std::move(tink_key.value()), crypto::tink::KeyStatus::kEnabled,
               /*is_primary=*/true))
           .Build();
-  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
 
   std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kEcdsa384Signature, &signature));
-
-  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
-      crypto::tink::ConfigSignatureV0());
-  EXPECT_THAT(verifier, IsOk());
-  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPkcs1Success) {
-  ExpectGetPublicKey(1);
-  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
-      CreateSignaturePublicKey(kKeyNameRsaPkcs1, kms_client_);
-  EXPECT_THAT(tink_key.status(), IsOk());
-
-  // Verify a signature with the key.
-  auto tink_keyset_handle =
-      KeysetHandleBuilder()
-          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
-              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
-              /*is_primary=*/true))
-          .Build();
-  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
-
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsaPkcs1Signature, &signature));
+  ASSERT_TRUE(absl::Base64Unescape(test_params.signature, &signature));
 
   EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
   auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
@@ -585,133 +483,9 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPkcs1Success) {
   EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
 }
 
-
-TEST_F(TestGcpKmsPublicKeyVerify,
-       GetSignaturePublicKeyRsa4096Sha256Pkcs1Success) {
-  ExpectGetPublicKey(1);
-  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
-      CreateSignaturePublicKey(kKeyNameRsa4096Sha256Pkcs1, kms_client_);
-  EXPECT_THAT(tink_key.status(), IsOk());
-
-  // Verify a signature with the key.
-  auto tink_keyset_handle =
-      KeysetHandleBuilder()
-          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
-              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
-              /*is_primary=*/true))
-          .Build();
-  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
-
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsa4096Sha256Pkcs1Signature, &signature));
-
-  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
-      crypto::tink::ConfigSignatureV0());
-  EXPECT_THAT(verifier, IsOk());
-  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
-}
-
-
-TEST_F(TestGcpKmsPublicKeyVerify,
-       GetSignaturePublicKeyRsa4096Sha512Pkcs1Success) {
-  ExpectGetPublicKey(1);
-  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
-      CreateSignaturePublicKey(kKeyNameRsa4096Sha512Pkcs1, kms_client_);
-  EXPECT_THAT(tink_key.status(), IsOk());
-
-  // Verify a signature with the key.
-  auto tink_keyset_handle =
-      KeysetHandleBuilder()
-          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
-              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
-              /*is_primary=*/true))
-          .Build();
-
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsa4096Sha512Pkcs1Signature, &signature));
-
-  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
-  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
-      crypto::tink::ConfigSignatureV0());
-  EXPECT_THAT(verifier, IsOk());
-  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyRsaPssSuccess) {
-  ExpectGetPublicKey(1);
-  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
-      CreateSignaturePublicKey(kKeyNameRsaPss, kms_client_);
-  EXPECT_THAT(tink_key.status(), IsOk());
-
-  // Verify a signature with the key.
-  auto tink_keyset_handle =
-      KeysetHandleBuilder()
-          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
-              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
-              /*is_primary=*/true))
-          .Build();
-  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
-
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsaPssSignature, &signature));
-
-  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
-  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
-      crypto::tink::ConfigSignatureV0());
-  EXPECT_THAT(verifier, IsOk());
-  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
-}
-
-TEST_F(TestGcpKmsPublicKeyVerify,
-       GetSignaturePublicKeyRsaPss4096Sha256Success) {
-  ExpectGetPublicKey(1);
-  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
-      CreateSignaturePublicKey(kKeyNameRsaPss4096Sha256, kms_client_);
-  EXPECT_THAT(tink_key.status(), IsOk());
-
-  // Verify a signature with the key.
-  auto tink_keyset_handle =
-      KeysetHandleBuilder()
-          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
-              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
-              /*is_primary=*/true))
-          .Build();
-  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
-
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsaPss4096Sha256Signature, &signature));
-
-  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
-      crypto::tink::ConfigSignatureV0());
-  EXPECT_THAT(verifier, IsOk());
-  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
-}
-
-
-TEST_F(TestGcpKmsPublicKeyVerify,
-       GetSignaturePublicKeyRsaPss4096Sha512Success) {
-  ExpectGetPublicKey(1);
-  absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
-      CreateSignaturePublicKey(kKeyNameRsaPss4096Sha512, kms_client_);
-  EXPECT_THAT(tink_key.status(), IsOk());
-
-  // Verify a signature with the key.
-  auto tink_keyset_handle =
-      KeysetHandleBuilder()
-          .AddEntry(KeysetHandleBuilder::Entry::CreateFromKey(
-              std::move(tink_key.value()), ::crypto::tink::KeyStatus::kEnabled,
-              /*is_primary=*/true))
-          .Build();
-
-  std::string signature;
-  ASSERT_TRUE(absl::Base64Unescape(kRsaPss4096Sha512Signature, &signature));
-
-  EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
-  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
-      crypto::tink::ConfigSignatureV0());
-  EXPECT_THAT(verifier, IsOk());
-  EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
-}
+INSTANTIATE_TEST_SUITE_P(
+    GetSignaturePublicKeyTests, GetSignaturePublicKeyTest,
+    testing::ValuesIn(GcpPublicKeyParamsValidCombinations()));
 
 TEST_F(TestGcpKmsPublicKeyVerify, GetSignaturePublicKeyEcdsaSecp256k1Fails) {
   ExpectGetPublicKey(1);
