@@ -31,6 +31,7 @@
 #include "google/cloud/status_or.h"
 #include "re2/re2.h"
 #include "tink/cleartext_keyset_handle.h"
+#include "tink/key.h"
 #include "tink/keyset_handle.h"
 #include "tink/keyset_reader.h"
 #include "tink/public_key_verify.h"
@@ -174,6 +175,10 @@ class GcpSignaturePublicKey : public SignaturePublicKey {
         dynamic_cast<const GcpSignaturePublicKey*>(&other);
     if (that == nullptr) return false;
     return GetParameters() == that->GetParameters();
+  }
+
+  virtual std::unique_ptr<Key> Clone() const {
+    return std::make_unique<GcpSignaturePublicKey>(*this);
   }
 
  private:
