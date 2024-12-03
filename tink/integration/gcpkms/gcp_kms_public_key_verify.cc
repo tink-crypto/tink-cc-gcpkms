@@ -34,6 +34,7 @@
 #include "tink/key.h"
 #include "tink/keyset_handle.h"
 #include "tink/keyset_reader.h"
+#include "tink/parameters.h"
 #include "tink/public_key_verify.h"
 #include "tink/signature/config_v0.h"
 #include "tink/signature/signature_config.h"
@@ -123,6 +124,10 @@ class GcpSignaturePublicKeyParameters : public SignatureParameters {
       return false;
     }
     return pem_ == that->pem_ && algorithm_ == that->algorithm_;
+  }
+
+  std::unique_ptr<Parameters> Clone() const {
+    return std::make_unique<GcpSignaturePublicKeyParameters>(*this);
   }
 
  private:
