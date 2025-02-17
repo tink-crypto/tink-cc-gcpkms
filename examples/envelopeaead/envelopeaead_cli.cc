@@ -115,30 +115,31 @@ void KmsEnvelopAeadCli(absl::string_view mode, absl::string_view kek_uri,
                        absl::string_view associated_data) {
   CHECK_OK(crypto::tink::AeadConfig::Register());
   // Obtain a remote Aead that can use the KEK.
-  StatusOr<std::unique_ptr<GcpKmsClient>> gcp_kms_client =
+  absl::StatusOr<std::unique_ptr<GcpKmsClient>> gcp_kms_client =
       GcpKmsClient::New(kek_uri, credentials);
   CHECK_OK(gcp_kms_client.status());
-  StatusOr<std::unique_ptr<Aead>> remote_aead =
+  absl::StatusOr<std::unique_ptr<Aead>> remote_aead =
       (*gcp_kms_client)->GetAead(kek_uri);
   CHECK_OK(remote_aead.status());
   // Define the DEK template.
   KeyTemplate dek_key_template = AeadKeyTemplates::Aes256Gcm();
   // Create a KmsEnvelopeAead instance.
-  StatusOr<std::unique_ptr<Aead>> aead = crypto::tink::KmsEnvelopeAead::New(
-      dek_key_template, *std::move(remote_aead));
+  absl::StatusOr<std::unique_ptr<Aead>> aead =
+      crypto::tink::KmsEnvelopeAead::New(dek_key_template,
+                                         *std::move(remote_aead));
   CHECK_OK(aead.status());
 
-  StatusOr<std::string> input_file_content = ReadFile(input_filename);
+  absl::StatusOr<std::string> input_file_content = ReadFile(input_filename);
   CHECK_OK(input_file_content.status());
   if (mode == kEncrypt) {
     // Generate the ciphertext.
-    StatusOr<std::string> encrypt_result =
+    absl::StatusOr<std::string> encrypt_result =
         (*aead)->Encrypt(*input_file_content, associated_data);
     CHECK_OK(encrypt_result.status());
     CHECK_OK(WriteToFile(encrypt_result.value(), output_filename));
   } else {  // mode == kDecrypt.
     // Recover the plaintext.
-    StatusOr<std::string> decrypt_result =
+    absl::StatusOr<std::string> decrypt_result =
         (*aead)->Decrypt(*input_file_content, associated_data);
     CHECK_OK(decrypt_result.status());
     CHECK_OK(WriteToFile(decrypt_result.value(), output_filename));
