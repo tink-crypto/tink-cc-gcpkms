@@ -124,7 +124,7 @@ StatusOr<std::string> ComputeDigest(absl::string_view data,
       md = EVP_sha512();
       break;
     default:
-      return util::Status(absl::StatusCode::kInternal,
+      return absl::Status(absl::StatusCode::kInternal,
                           absl::StrCat("Invalid DigestCase: ", digest_case));
   }
 
@@ -132,7 +132,7 @@ StatusOr<std::string> ComputeDigest(absl::string_view data,
   uint8_t digest[EVP_MAX_MD_SIZE];
   if (EVP_Digest(data.data(), data.size(), digest, &digest_size, md,
                  /*impl=*/nullptr) != 1) {
-    return util::Status(absl::StatusCode::kInternal,
+    return absl::Status(absl::StatusCode::kInternal,
                         "Error computing the digest.");
   }
   return std::string(reinterpret_cast<char*>(digest), digest_size);
@@ -176,7 +176,7 @@ StatusOr<AsymmetricSignRequest> BuildAsymmetricSignRequest(
       request.mutable_digest()->set_sha512(*digest_string);
       break;
     default:
-      return util::Status(absl::StatusCode::kInternal,
+      return absl::Status(absl::StatusCode::kInternal,
                           absl::StrCat("Invalid DigestCase: ", *digest_case));
   }
   request.mutable_digest_crc32c()->set_value(
@@ -208,7 +208,7 @@ class GcpKmsPublicKeySign : public PublicKeySign {
 
 StatusOr<std::string> GcpKmsPublicKeySign::Sign(absl::string_view data) const {
   if (data.size() > kMaxSignDataSize) {
-    return util::Status(
+    return absl::Status(
         absl::StatusCode::kInvalidArgument,
         absl::StrCat("The input data (", data.size(),
                      " bytes) is larger than the allowed limit (",
@@ -226,20 +226,20 @@ StatusOr<std::string> GcpKmsPublicKeySign::Sign(absl::string_view data) const {
   google::cloud::StatusOr<AsymmetricSignResponse> response =
       kms_client_->AsymmetricSign(*request);
   if (!response.ok()) {
-    return util::Status(absl::StatusCode::kInternal,
+    return absl::Status(absl::StatusCode::kInternal,
                         absl::StrCat("GCP KMS AsymmetricSign failed: ",
                                      response.status().message()));
   }
   // Perform integrity checks.
   if (response->name() != key_name_) {
-    return util::Status(absl::StatusCode::kInternal,
+    return absl::Status(absl::StatusCode::kInternal,
                         absl::StrCat("The key name in the response does not "
                                      "match the requested key name.",
                                      response.status().message()));
   }
   if (!response->verified_data_crc32c() &&
       !response->verified_digest_crc32c()) {
-    return util::Status(absl::StatusCode::kInternal,
+    return absl::Status(absl::StatusCode::kInternal,
                         absl::StrCat("Checking the input checksum failed.",
                                      response.status().message()));
   }
@@ -248,7 +248,7 @@ StatusOr<std::string> GcpKmsPublicKeySign::Sign(absl::string_view data) const {
   uint32_t computed_crc32c =
       static_cast<uint32_t>(absl::ComputeCrc32c(response->signature()));
   if (computed_crc32c != given_crc32c) {
-    return util::Status(absl::StatusCode::kInternal,
+    return absl::Status(absl::StatusCode::kInternal,
                         absl::StrCat("Signature checksum mismatch.",
                                      response.status().message()));
   }
@@ -261,13 +261,13 @@ StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
     absl::string_view key_name,
     absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
-    return util::Status(
+    return absl::Status(
         absl::StatusCode::kInvalidArgument,
         absl::StrCat(key_name, " does not match the KMS key name format: ",
                      kKmsKeyNameFormat->pattern()));
   }
   if (kms_client == nullptr) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         "KMS client cannot be null.");
   }
   // Retrieve the related public key from KMS, that contains information on
@@ -277,7 +277,7 @@ StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
   google::cloud::StatusOr<PublicKey> response =
       kms_client->GetPublicKey(request);
   if (!response.ok()) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("GCP KMS GetPublicKey failed: ",
                                      response.status().message()));
   }

@@ -51,13 +51,13 @@ util::StatusOr<std::unique_ptr<Aead>> NewGcpKmsAead(
     std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>
         kms_client) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
-    return util::Status(
+    return absl::Status(
         absl::StatusCode::kInvalidArgument,
         absl::StrCat(key_name, " does not match the KMS key name format: ",
                      kKmsKeyNameFormat->pattern()));
   }
   if (kms_client == nullptr) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         "KMS client cannot be null.");
   }
   return absl::WrapUnique(new GcpKmsAead(key_name, kms_client));
@@ -67,13 +67,13 @@ util::StatusOr<std::unique_ptr<Aead>> GcpKmsAead::New(
     absl::string_view key_name,
     std::shared_ptr<KeyManagementService::Stub> kms_stub) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
-    return util::Status(
+    return absl::Status(
         absl::StatusCode::kInvalidArgument,
         absl::StrCat(key_name, " does not match the KMS key name format: ",
                      kKmsKeyNameFormat->pattern()));
   }
   if (kms_stub == nullptr) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         "KMS stub cannot be null.");
   }
   return absl::WrapUnique(new GcpKmsAead(key_name, kms_stub));
@@ -89,7 +89,7 @@ util::StatusOr<std::string> GcpKmsAead::Encrypt(
   if (kms_client_) {
     auto response = kms_client_->Encrypt(req);
     if (!response.ok()) {
-      return util::Status(absl::StatusCode::kInvalidArgument,
+      return absl::Status(absl::StatusCode::kInvalidArgument,
                           absl::StrCat("GCP KMS encryption failed: ",
                                        response.status().message()));
     }
@@ -104,7 +104,7 @@ util::StatusOr<std::string> GcpKmsAead::Encrypt(
   grpc::Status status = kms_stub_->Encrypt(&context, req, &resp);
 
   if (!status.ok()) {
-    return util::Status(
+    return absl::Status(
         static_cast<absl::StatusCode>(status.error_code()),
         absl::StrCat("GCP KMS encryption failed: ", status.error_message()));
   }
@@ -120,7 +120,7 @@ util::StatusOr<std::string> GcpKmsAead::Decrypt(
   if (kms_client_) {
     auto response = kms_client_->Decrypt(req);
     if (!response.ok()) {
-      return util::Status(absl::StatusCode::kInvalidArgument,
+      return absl::Status(absl::StatusCode::kInvalidArgument,
                           absl::StrCat("GCP KMS decryption failed: ",
                                        response.status().message()));
     }
@@ -135,7 +135,7 @@ util::StatusOr<std::string> GcpKmsAead::Decrypt(
   grpc::Status status = kms_stub_->Decrypt(&context, req, &resp);
 
   if (!status.ok()) {
-    return util::Status(
+    return absl::Status(
         static_cast<absl::StatusCode>(status.error_code()),
         absl::StrCat("GCP KMS decryption failed: ", status.error_message()));
   }

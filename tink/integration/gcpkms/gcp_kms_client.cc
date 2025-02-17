@@ -55,7 +55,7 @@ util::StatusOr<std::string> ReadFile(absl::string_view filename) {
   std::ifstream input_stream;
   input_stream.open(std::string(filename), std::ifstream::in);
   if (!input_stream.is_open()) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("Error reading file ", filename));
   }
   std::stringstream input;
@@ -70,7 +70,7 @@ util::StatusOr<std::shared_ptr<grpc::ChannelCredentials>> GetCredentials(
     std::shared_ptr<grpc::ChannelCredentials> creds =
         grpc::GoogleDefaultCredentials();
     if (creds == nullptr) {
-      return util::Status(absl::StatusCode::kInternal,
+      return absl::Status(absl::StatusCode::kInternal,
                           "Could not read default credentials");
     }
     return creds;
@@ -84,7 +84,7 @@ util::StatusOr<std::shared_ptr<grpc::ChannelCredentials>> GetCredentials(
   std::shared_ptr<grpc::CallCredentials> creds =
       grpc::ServiceAccountJWTAccessCredentials(json_creds_result.value());
   if (creds == nullptr) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("Could not load credentials from file ",
                                      credentials_path));
   }
@@ -99,7 +99,7 @@ util::StatusOr<std::shared_ptr<grpc::ChannelCredentials>> GetCredentials(
 // to a GCP key, returns an error status.
 util::StatusOr<std::string> GetKeyName(absl::string_view key_uri) {
   if (!absl::StartsWithIgnoreCase(key_uri, kKeyUriPrefix)) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("The key URI ", key_uri,
                                      " does not start with ", kKeyUriPrefix));
   }
@@ -155,14 +155,14 @@ util::StatusOr<std::unique_ptr<Aead>> GcpKmsClient::GetAead(
   // key_uri is valid, but if key_name_ is not empty key_name_from_key_uri must
   // be equal to key_name_.
   if (!key_name_.empty() && key_name_ != *key_name_from_key_uri) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("This client is bound to ", key_name_,
                                      " and cannot use key ", key_uri));
   }
   return GcpKmsAead::New(*key_name_from_key_uri, kms_stub_);
 }
 
-util::Status GcpKmsClient::RegisterNewClient(
+absl::Status GcpKmsClient::RegisterNewClient(
     absl::string_view key_uri, absl::string_view credentials_path) {
   auto client_result = GcpKmsClient::New(key_uri, credentials_path);
   if (!client_result.ok()) {

@@ -61,8 +61,8 @@ class GcpKmsClient : public crypto::tink::KmsClient {
   // It is often not necessary to use this function.  Instead, you can call
   // GcpKmsAead::New to directly create an Aead object without creating or
   // registering a client.
-  static crypto::tink::util::Status RegisterNewClient(
-      absl::string_view key_uri, absl::string_view credentials_path);
+  static absl::Status RegisterNewClient(absl::string_view key_uri,
+                                        absl::string_view credentials_path);
 
   // Returns true iff this client does support KMS key specified by `key_uri`.
   bool DoesSupport(absl::string_view key_uri) const override;

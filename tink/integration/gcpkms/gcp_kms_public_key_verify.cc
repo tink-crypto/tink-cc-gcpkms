@@ -100,7 +100,7 @@ class GcpSignaturePublicKeyParameters : public SignatureParameters {
       absl::string_view pem,
       CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
     if (!IsValidAlgorithm(algorithm)) {
-      return util::Status(absl::StatusCode::kInvalidArgument,
+      return absl::Status(absl::StatusCode::kInvalidArgument,
                           absl::StrCat("Unsupported algorithm: ", algorithm));
     }
 
@@ -248,13 +248,13 @@ StatusOr<PublicKey> GetGcpKmsPublicKey(
     absl::string_view key_name,
     absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
-    return util::Status(
+    return absl::Status(
         absl::StatusCode::kInvalidArgument,
         absl::StrCat(key_name, " does not match the KMS key name format: ",
                      kKmsKeyNameFormat->pattern()));
   }
   if (kms_client == nullptr) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         "KMS client cannot be null.");
   }
 
@@ -264,14 +264,14 @@ StatusOr<PublicKey> GetGcpKmsPublicKey(
   google::cloud::StatusOr<PublicKey> response =
       kms_client->GetPublicKey(request);
   if (!response.ok()) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("GCP KMS GetPublicKey failed: ",
                                      response.status().message()));
   }
 
   // Perform integrity checks.
   if (response->name() != key_name) {
-    return util::Status(absl::StatusCode::kInternal,
+    return absl::Status(absl::StatusCode::kInternal,
                         absl::StrCat("The key name in the response does not "
                                      "match the requested key name.",
                                      response.status().message()));
@@ -280,13 +280,13 @@ StatusOr<PublicKey> GetGcpKmsPublicKey(
       static_cast<absl::crc32c_t>(response->pem_crc32c().value());
   absl::crc32c_t computed_crc32c = absl::ComputeCrc32c(response->pem());
   if (computed_crc32c != given_crc32c) {
-    return util::Status(absl::StatusCode::kInternal,
+    return absl::Status(absl::StatusCode::kInternal,
                         absl::StrCat("Public key checksum mismatch.",
                                      response.status().message()));
   }
 
   if (!IsValidAlgorithm(response->algorithm())) {
-    return util::Status(
+    return absl::Status(
         absl::StatusCode::kInvalidArgument,
         absl::StrCat("Unsupported algorithm: ", response->algorithm()));
   }
@@ -424,7 +424,7 @@ StatusOr<std::shared_ptr<const SignaturePublicKey>> CreateSignaturePublicKey(
   auto signature_public_key =
       std::dynamic_pointer_cast<const crypto::tink::SignaturePublicKey>(key);
   if (signature_public_key == nullptr) {
-    return util::Status(
+    return absl::Status(
         absl::StatusCode::kInternal,
         absl::StrCat(
             "Failed to cast key to crypto::tink::SignaturePublicKey. Keyset: ",
@@ -467,7 +467,7 @@ CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key) {
   const GcpSignaturePublicKey* public_key =
       dynamic_cast<const GcpSignaturePublicKey*>(&key);
   if (public_key == nullptr) {
-    return util::Status(
+    return absl::Status(
         absl::StatusCode::kInvalidArgument,
         "Invalid SignaturePublicKey, not a GcpSignaturePublicKey.");
   }
