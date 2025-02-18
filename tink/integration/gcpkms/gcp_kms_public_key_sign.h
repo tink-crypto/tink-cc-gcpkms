@@ -39,8 +39,7 @@ namespace gcpkms {
 // Valid values for `key_name` have the following format:
 //    projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*.
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
-crypto::tink::util::StatusOr<std::unique_ptr<PublicKeySign>>
-CreateGcpKmsPublicKeySign(
+absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
     absl::string_view key_name,
     absl::Nonnull<
         std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>>

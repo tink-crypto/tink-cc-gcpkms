@@ -80,7 +80,7 @@ class TestGcpKmsAead : public testing::Test {
         .Times(times)
         .WillRepeatedly([&](kmsV1::DecryptRequest const& request)
                             -> StatusOr<kmsV1::DecryptResponse> {
-          util::StatusOr<std::string> plaintext = aead.Decrypt(
+          absl::StatusOr<std::string> plaintext = aead.Decrypt(
               request.ciphertext(), request.additional_authenticated_data());
           if (!plaintext.ok()) {
             return Status(google::cloud::StatusCode::kInvalidArgument,

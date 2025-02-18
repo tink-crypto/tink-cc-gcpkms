@@ -42,8 +42,7 @@ namespace gcpkms {
 // Valid values for `key_name` have the following format:
 //    projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*.
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
-crypto::tink::util::StatusOr<std::unique_ptr<PublicKeyVerify>>
-CreateGcpKmsPublicKeyVerify(
+absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
     absl::string_view key_name,
     absl::Nonnull<
         std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>>
@@ -55,7 +54,7 @@ CreateGcpKmsPublicKeyVerify(
 // Valid values for `key_name` have the following format:
 //    projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*.
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
-crypto::tink::util::StatusOr<std::shared_ptr<const SignaturePublicKey>>
+absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
 CreateSignaturePublicKey(
     absl::string_view key_name,
     absl::Nonnull<
@@ -68,7 +67,7 @@ CreateSignaturePublicKey(
 // See
 // https://cloud.google.com/kms/docs/reference/rest/v1/projects.locations.keyRings.cryptoKeys.cryptoKeyVersions/getPublicKey
 // for more info about fetching the public key from Cloud KMS.
-crypto::tink::util::StatusOr<std::unique_ptr<SignaturePublicKey>>
+absl::StatusOr<std::unique_ptr<SignaturePublicKey>>
 CreateSignaturePublicKeyWithNoRpcs(
     absl::string_view pem,
     google::cloud::kms::v1::CryptoKeyVersion::CryptoKeyVersionAlgorithm
@@ -80,7 +79,7 @@ CreateSignaturePublicKeyWithNoRpcs(
 //
 // The input key can be obtained through `CreateSignaturePublicKeyWithNoRpcs`,
 // which does not call KMS and instead takes in a PEM-formatted key directly.
-crypto::tink::util::StatusOr<std::unique_ptr<PublicKeyVerify>>
+absl::StatusOr<std::unique_ptr<PublicKeyVerify>>
 CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key);
 
 }  // namespace gcpkms

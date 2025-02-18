@@ -47,16 +47,16 @@ class GcpKmsAead : public Aead {
   // Valid values for `key_name` have the following format:
   //    projects/*/locations/*/keyRings/*/cryptoKeys/*.
   // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
-  static crypto::tink::util::StatusOr<std::unique_ptr<Aead>> New(
+  static absl::StatusOr<std::unique_ptr<Aead>> New(
       absl::string_view key_name,
       std::shared_ptr<google::cloud::kms::v1::KeyManagementService::Stub>
           kms_stub);
 
-  crypto::tink::util::StatusOr<std::string> Encrypt(
+  absl::StatusOr<std::string> Encrypt(
       absl::string_view plaintext,
       absl::string_view associated_data) const override;
 
-  crypto::tink::util::StatusOr<std::string> Decrypt(
+  absl::StatusOr<std::string> Decrypt(
       absl::string_view ciphertext,
       absl::string_view associated_data) const override;
 
@@ -71,7 +71,7 @@ class GcpKmsAead : public Aead {
       std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>
           kms_client)
       : key_name_(key_name), kms_client_(kms_client) {}
-  friend crypto::tink::util::StatusOr<std::unique_ptr<Aead>> NewGcpKmsAead(
+  friend absl::StatusOr<std::unique_ptr<Aead>> NewGcpKmsAead(
       absl::string_view key_name,
       std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>
           kms_client);
@@ -89,7 +89,7 @@ class GcpKmsAead : public Aead {
 // Valid values for `key_name` have the following format:
 //    projects/*/locations/*/keyRings/*/cryptoKeys/*.
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
-crypto::tink::util::StatusOr<std::unique_ptr<Aead>> NewGcpKmsAead(
+absl::StatusOr<std::unique_ptr<Aead>> NewGcpKmsAead(
     absl::string_view key_name,
     std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>
         kms_client);
