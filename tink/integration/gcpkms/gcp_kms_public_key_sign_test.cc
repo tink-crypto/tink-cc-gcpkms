@@ -67,6 +67,8 @@ constexpr absl::string_view kKeyNameErrorCrc32cNotVerified =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/7";
 constexpr absl::string_view kKeyNameErrorWrongKeyName =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/8";
+constexpr absl::string_view kKeyNameErrorUnsupportedAlgorithm =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/9";
 
 class TestGcpKmsPublicKeySign : public testing::Test {
  public:
@@ -146,6 +148,10 @@ class TestGcpKmsPublicKeySign : public testing::Test {
           } else if (request.name() == kKeyNameErrorGetPublicKey) {
             return Status(google::cloud::StatusCode::kInternal,
                           "Internal error");
+          } else if (request.name() == kKeyNameErrorUnsupportedAlgorithm) {
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::RSA_DECRYPT_OAEP_2048_SHA256);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
           }
           return StatusOr<kmsV1::PublicKey>(response);
         });
@@ -187,6 +193,14 @@ TEST_F(TestGcpKmsPublicKeySign, GetPublicKeyFails) {
   EXPECT_THAT(kmsSigner.status(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("GCP KMS GetPublicKey failed")));
+}
+
+TEST_F(TestGcpKmsPublicKeySign, UnsupportedAlgorithmFails) {
+  ExpectGetPublicKey(1);
+  auto kmsSigner =
+      CreateGcpKmsPublicKeySign(kKeyNameErrorUnsupportedAlgorithm, kms_client_);
+  EXPECT_THAT(kmsSigner.status(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                           HasSubstr("is not supported")));
 }
 
 TEST_F(TestGcpKmsPublicKeySign, AsymmetricSignFails) {

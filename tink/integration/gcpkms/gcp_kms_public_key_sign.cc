@@ -57,6 +57,29 @@ static constexpr LazyRE2 kKmsKeyNameFormat = {
     "projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+/"
     "cryptoKeyVersions/.*"};
 
+// Returns whether the given algorithm is supported for signing through Tink.
+bool IsSupported(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
+  switch (algorithm) {
+    case CryptoKeyVersion::EC_SIGN_P256_SHA256:
+    case CryptoKeyVersion::EC_SIGN_P384_SHA384:
+    case CryptoKeyVersion::EC_SIGN_SECP256K1_SHA256:
+    case CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256:
+    case CryptoKeyVersion::RSA_SIGN_PSS_3072_SHA256:
+    case CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA256:
+    case CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA512:
+    case CryptoKeyVersion::RSA_SIGN_PKCS1_2048_SHA256:
+    case CryptoKeyVersion::RSA_SIGN_PKCS1_3072_SHA256:
+    case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA256:
+    case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512:
+    case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_2048:
+    case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_3072:
+    case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_4096:
+      return true;
+    default:
+      return false;
+  }
+}
+
 // Some AsymmetricSign algorithms require data as input and some other
 // operate on a digest of the data. This method determines if data itself is
 // required for signing and returns true if so.
@@ -280,6 +303,14 @@ StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
     return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("GCP KMS GetPublicKey failed: ",
                                      response.status().message()));
+  }
+  if (!IsSupported(response->algorithm())) {
+    return absl::Status(
+        absl::StatusCode::kInvalidArgument,
+        absl::StrCat("The given algorithm ",
+                     CryptoKeyVersion::CryptoKeyVersionAlgorithm_Name(
+                         response->algorithm()),
+                     " is not supported."));
   }
   return absl::make_unique<GcpKmsPublicKeySign>(key_name, *response,
                                                 kms_client);
