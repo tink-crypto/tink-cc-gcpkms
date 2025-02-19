@@ -128,12 +128,11 @@ def tink_cc_gcpkms_deps():
     if "com_google_googleapis" not in native.existing_rules():
         http_archive(
             name = "com_google_googleapis",
-            sha256 = "b541d28b3fd5c0ce802f02b665cf14dfe7a88bd34d8549215127e7ab1008bbbc",
-            strip_prefix = "googleapis-e56f4b1c926f42d6ab127c049158df2dda189914",
+            sha256 = "c9bc8f2485009bc7e0f3cf89116ba158c54b215452f5777af6eb3d508aeefe55",
+            strip_prefix = "googleapis-0c860e055a00ff0b6553b7f1eb4e77829f00e12a",
             build_file = Label("@com_github_grpc_grpc//bazel:googleapis.BUILD"),
             urls = [
-                "https://storage.googleapis.com/cloud-cpp-community-archive/com_google_googleapis/e56f4b1c926f42d6ab127c049158df2dda189914.tar.gz",
-                "https://github.com/googleapis/googleapis/archive/e56f4b1c926f42d6ab127c049158df2dda189914.tar.gz",
+                "https://github.com/googleapis/googleapis/archive/0c860e055a00ff0b6553b7f1eb4e77829f00e12a.tar.gz",
             ],
         )
 
