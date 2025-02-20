@@ -157,6 +157,23 @@ class TestGcpKmsPublicKeySign : public testing::Test {
         });
   }
 
+  void ExpectPqcGetPublicKey(int times) {
+    EXPECT_CALL(*mock_connection_, GetPublicKey)
+        .Times(times)
+        .WillRepeatedly([&](kmsV1::GetPublicKeyRequest const& request)
+                            -> StatusOr<kmsV1::PublicKey> {
+          kmsV1::PublicKey response;
+          if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
+            return Status(
+                google::cloud::StatusCode::kInvalidArgument,
+                "Only NIST_PQC format is supported for PQC algorithms.");
+          }
+          response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
+          response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+          return StatusOr<kmsV1::PublicKey>(response);
+        });
+  }
+
  protected:
   std::shared_ptr<MockKeyManagementServiceConnection> mock_connection_;
   std::shared_ptr<KeyManagementServiceClient> kms_client_;
@@ -290,6 +307,16 @@ TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDigestSuccess) {
       CreateGcpKmsPublicKeySign(kKeyNameRequiresDigest, kms_client_);
   EXPECT_THAT(kmsSigner.status(), IsOk());
   EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kDigest)));
+}
+
+TEST_F(TestGcpKmsPublicKeySign, PublicKeySignPqcAlgorithmSuccess) {
+  DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresData1);
+  ExpectPqcGetPublicKey(/*times*/ 2);
+  ExpectSign(signer, /*times*/ 1);
+  auto kmsSigner =
+      CreateGcpKmsPublicKeySign(kKeyNameRequiresData1, kms_client_);
+  EXPECT_THAT(kmsSigner.status(), IsOk());
+  EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kData)));
 }
 
 }  // namespace

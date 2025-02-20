@@ -24,6 +24,7 @@
 #include "absl/crc/crc32c.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
@@ -74,6 +75,8 @@ bool IsSupported(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_2048:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_3072:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_4096:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
       return true;
     default:
       return false;
@@ -90,6 +93,8 @@ bool RequiresDataForSign(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_2048:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_3072:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_4096:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
       return true;
     default:
       break;
@@ -299,6 +304,13 @@ StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
   request.set_name(key_name);
   google::cloud::StatusOr<PublicKey> response =
       kms_client->GetPublicKey(request);
+  // Catch PQC keys missing public_key_format field and send another request.
+  if (!response.ok() &&
+      absl::StrContains(response.status().message(),
+                        "Only NIST_PQC format is supported")) {
+    request.set_public_key_format(PublicKey::NIST_PQC);
+    response = kms_client->GetPublicKey(request);
+  }
   if (!response.ok()) {
     return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("GCP KMS GetPublicKey failed: ",
