@@ -50,7 +50,7 @@ class GcpKmsClient : public crypto::tink::KmsClient {
   // Either argument can be empty.
   // If `key_uri` is empty, then the client is not bound to any particular key.
   // If `credential_path` is empty, then default credentials will be used.
-  static crypto::tink::util::StatusOr<std::unique_ptr<GcpKmsClient>> New(
+  static absl::StatusOr<std::unique_ptr<GcpKmsClient>> New(
       absl::string_view key_uri, absl::string_view credentials_path);
 
   // Creates a new client and adds it to the global list of KMSClients.
@@ -69,7 +69,7 @@ class GcpKmsClient : public crypto::tink::KmsClient {
 
   // Returns an Aead-primitive backed by KMS key specified by `key_uri`,
   // provided that this KmsClient does support `key_uri`.
-  crypto::tink::util::StatusOr<std::unique_ptr<Aead>> GetAead(
+  absl::StatusOr<std::unique_ptr<Aead>> GetAead(
       absl::string_view key_uri) const override;
 
  private:

@@ -51,7 +51,7 @@ static constexpr absl::string_view kKeyUriPrefix = "gcp-kms://";
 static constexpr absl::string_view kGcpKmsServer = "cloudkms.googleapis.com";
 static constexpr absl::string_view kTinkUserAgentPrefix = "Tink/";
 
-util::StatusOr<std::string> ReadFile(absl::string_view filename) {
+absl::StatusOr<std::string> ReadFile(absl::string_view filename) {
   std::ifstream input_stream;
   input_stream.open(std::string(filename), std::ifstream::in);
   if (!input_stream.is_open()) {
@@ -64,7 +64,7 @@ util::StatusOr<std::string> ReadFile(absl::string_view filename) {
   return input.str();
 }
 
-util::StatusOr<std::shared_ptr<grpc::ChannelCredentials>> GetCredentials(
+absl::StatusOr<std::shared_ptr<grpc::ChannelCredentials>> GetCredentials(
     absl::string_view credentials_path) {
   if (credentials_path.empty()) {
     std::shared_ptr<grpc::ChannelCredentials> creds =
@@ -77,7 +77,7 @@ util::StatusOr<std::shared_ptr<grpc::ChannelCredentials>> GetCredentials(
   }
 
   // Try reading credentials from a file.
-  util::StatusOr<std::string> json_creds_result = ReadFile(credentials_path);
+  absl::StatusOr<std::string> json_creds_result = ReadFile(credentials_path);
   if (!json_creds_result.ok()) {
     return json_creds_result.status();
   }
@@ -97,7 +97,7 @@ util::StatusOr<std::shared_ptr<grpc::ChannelCredentials>> GetCredentials(
 
 // Returns GCP KMS key name contained in `key_uri`. If `key_uri` does not refer
 // to a GCP key, returns an error status.
-util::StatusOr<std::string> GetKeyName(absl::string_view key_uri) {
+absl::StatusOr<std::string> GetKeyName(absl::string_view key_uri) {
   if (!absl::StartsWithIgnoreCase(key_uri, kKeyUriPrefix)) {
     return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("The key URI ", key_uri,
@@ -108,12 +108,12 @@ util::StatusOr<std::string> GetKeyName(absl::string_view key_uri) {
 
 }  // namespace
 
-util::StatusOr<std::unique_ptr<GcpKmsClient>> GcpKmsClient::New(
+absl::StatusOr<std::unique_ptr<GcpKmsClient>> GcpKmsClient::New(
     absl::string_view key_uri, absl::string_view credentials_path) {
   // Empty key name by default.
   std::string key_name = "";
   if (!key_uri.empty()) {
-    util::StatusOr<std::string> key_name_from_uri = GetKeyName(key_uri);
+    absl::StatusOr<std::string> key_name_from_uri = GetKeyName(key_uri);
     if (!key_name_from_uri.ok()) {
       return key_name_from_uri.status();
     }
@@ -121,7 +121,7 @@ util::StatusOr<std::unique_ptr<GcpKmsClient>> GcpKmsClient::New(
   }
 
   // Read credentials.
-  util::StatusOr<std::shared_ptr<grpc::ChannelCredentials>> creds_result =
+  absl::StatusOr<std::shared_ptr<grpc::ChannelCredentials>> creds_result =
       GetCredentials(credentials_path);
   if (!creds_result.ok()) {
     return creds_result.status();
@@ -138,16 +138,16 @@ util::StatusOr<std::unique_ptr<GcpKmsClient>> GcpKmsClient::New(
 }
 
 bool GcpKmsClient::DoesSupport(absl::string_view key_uri) const {
-  util::StatusOr<std::string> key_name = GetKeyName(key_uri);
+  absl::StatusOr<std::string> key_name = GetKeyName(key_uri);
   if (!key_name.ok()) {
     return false;
   }
   return key_name_.empty() ? true : key_name_ == *key_name;
 }
 
-util::StatusOr<std::unique_ptr<Aead>> GcpKmsClient::GetAead(
+absl::StatusOr<std::unique_ptr<Aead>> GcpKmsClient::GetAead(
     absl::string_view key_uri) const {
-  util::StatusOr<std::string> key_name_from_key_uri = GetKeyName(key_uri);
+  absl::StatusOr<std::string> key_name_from_key_uri = GetKeyName(key_uri);
   // key_uri is invalid.
   if (!key_name_from_key_uri.ok()) {
     return key_name_from_key_uri.status();

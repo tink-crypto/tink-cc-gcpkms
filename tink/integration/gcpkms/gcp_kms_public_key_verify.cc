@@ -96,7 +96,7 @@ class GcpSignaturePublicKeyParameters : public SignatureParameters {
       GcpSignaturePublicKeyParameters&& other) = default;
 
   // Creates a new GcpSignaturePublicKey parameters object.
-  static StatusOr<GcpSignaturePublicKeyParameters> Create(
+  static absl::StatusOr<GcpSignaturePublicKeyParameters> Create(
       absl::string_view pem,
       CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
     if (!IsValidAlgorithm(algorithm)) {
@@ -149,11 +149,11 @@ class GcpSignaturePublicKey : public SignaturePublicKey {
   GcpSignaturePublicKey(GcpSignaturePublicKey&& other) = default;
   GcpSignaturePublicKey& operator=(GcpSignaturePublicKey&& other) = default;
 
-  static StatusOr<GcpSignaturePublicKey> Create(
+  static absl::StatusOr<GcpSignaturePublicKey> Create(
       absl::string_view pem,
       CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
       PartialKeyAccessToken token) {
-    StatusOr<GcpSignaturePublicKeyParameters> params =
+    absl::StatusOr<GcpSignaturePublicKeyParameters> params =
         GcpSignaturePublicKeyParameters::Create(pem, algorithm);
     if (!params.ok()) {
       return params.status();
@@ -194,7 +194,7 @@ class GcpSignaturePublicKey : public SignaturePublicKey {
 };
 
 // Returns the proper key size in bits for the given KMS algorithm.
-StatusOr<size_t> GetKeySizeFromAlgorithm(
+absl::StatusOr<size_t> GetKeySizeFromAlgorithm(
     const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
   switch (algorithm) {
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
@@ -220,7 +220,7 @@ StatusOr<size_t> GetKeySizeFromAlgorithm(
 }
 
 // Returns the proper Hash for the given KMS algorithm.
-StatusOr<HashType> GetHashFromAlgorithm(
+absl::StatusOr<HashType> GetHashFromAlgorithm(
     const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
   switch (algorithm) {
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
@@ -244,7 +244,7 @@ StatusOr<HashType> GetHashFromAlgorithm(
   }
 }
 
-StatusOr<PublicKey> GetGcpKmsPublicKey(
+absl::StatusOr<PublicKey> GetGcpKmsPublicKey(
     absl::string_view key_name,
     absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
@@ -296,14 +296,14 @@ StatusOr<PublicKey> GetGcpKmsPublicKey(
 }
 
 // Converts the given PEM key into a Tink Keyset Handle.
-StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPemKey(
+absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPemKey(
     const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
     absl::string_view pem_key) {
-  StatusOr<HashType> hash_type = GetHashFromAlgorithm(algorithm);
+  absl::StatusOr<HashType> hash_type = GetHashFromAlgorithm(algorithm);
   if (!hash_type.ok()) {
     return hash_type.status();
   }
-  StatusOr<size_t> key_size = GetKeySizeFromAlgorithm(algorithm);
+  absl::StatusOr<size_t> key_size = GetKeySizeFromAlgorithm(algorithm);
   if (!key_size.ok()) {
     return key_size.status();
   }
@@ -354,7 +354,7 @@ StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPemKey(
           CryptoKeyVersion::CryptoKeyVersionAlgorithm_Name(algorithm),
           " is not supported for verification."));
   }
-  StatusOr<std::unique_ptr<KeysetReader>> keyset = builder.Build();
+  absl::StatusOr<std::unique_ptr<KeysetReader>> keyset = builder.Build();
   if (!keyset.ok()) {
     return keyset.status();
   }
@@ -363,10 +363,11 @@ StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPemKey(
 
 // Uses the right internal verifier based on the KMS `algorithm`, and converts
 // the public key to the right format accordingly.
-StatusOr<std::unique_ptr<PublicKeyVerify>> GetInternalVerifierForAlgorithm(
+absl::StatusOr<std::unique_ptr<PublicKeyVerify>>
+GetInternalVerifierForAlgorithm(
     CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
     absl::string_view pem_key) {
-  StatusOr<std::unique_ptr<KeysetHandle>> keyset_handle =
+  absl::StatusOr<std::unique_ptr<KeysetHandle>> keyset_handle =
       GetTinkKeySetHandleFromPemKey(algorithm, pem_key);
   if (!keyset_handle.ok()) {
     return keyset_handle.status();
@@ -394,7 +395,8 @@ class GcpKmsPublicKeyVerify : public PublicKeyVerify {
 };
 }  // namespace
 
-StatusOr<std::shared_ptr<const SignaturePublicKey>> CreateSignaturePublicKey(
+absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
+CreateSignaturePublicKey(
     absl::string_view key_name,
     absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
   auto gcp_kms_public_key = GetGcpKmsPublicKey(key_name, kms_client);
@@ -433,14 +435,14 @@ StatusOr<std::shared_ptr<const SignaturePublicKey>> CreateSignaturePublicKey(
   return signature_public_key;
 }
 
-StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
+absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
     absl::string_view key_name,
     absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
   auto gcp_kms_public_key = GetGcpKmsPublicKey(key_name, kms_client);
   if (!gcp_kms_public_key.ok()) {
     return gcp_kms_public_key.status();
   }
-  StatusOr<std::unique_ptr<PublicKeyVerify>> verifier =
+  absl::StatusOr<std::unique_ptr<PublicKeyVerify>> verifier =
       GetInternalVerifierForAlgorithm(gcp_kms_public_key->algorithm(),
                                       gcp_kms_public_key->pem());
   if (!verifier.ok()) {
@@ -449,12 +451,12 @@ StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
   return absl::make_unique<GcpKmsPublicKeyVerify>(*std::move(verifier));
 }
 
-StatusOr<std::unique_ptr<SignaturePublicKey>>
+absl::StatusOr<std::unique_ptr<SignaturePublicKey>>
 CreateSignaturePublicKeyWithNoRpcs(
     absl::string_view pem,
     CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
     PartialKeyAccessToken token) {
-  StatusOr<GcpSignaturePublicKey> key =
+  absl::StatusOr<GcpSignaturePublicKey> key =
       GcpSignaturePublicKey::Create(pem, algorithm, token);
   if (!key.ok()) {
     return key.status();
@@ -462,7 +464,7 @@ CreateSignaturePublicKeyWithNoRpcs(
   return absl::make_unique<GcpSignaturePublicKey>(*key);
 }
 
-StatusOr<std::unique_ptr<PublicKeyVerify>>
+absl::StatusOr<std::unique_ptr<PublicKeyVerify>>
 CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key) {
   const GcpSignaturePublicKey* public_key =
       dynamic_cast<const GcpSignaturePublicKey*>(&key);
@@ -471,7 +473,7 @@ CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key) {
         absl::StatusCode::kInvalidArgument,
         "Invalid SignaturePublicKey, not a GcpSignaturePublicKey.");
   }
-  StatusOr<std::unique_ptr<PublicKeyVerify>> verifier =
+  absl::StatusOr<std::unique_ptr<PublicKeyVerify>> verifier =
       GetInternalVerifierForAlgorithm(public_key->GetAlgorithm(),
                                       public_key->GetPem());
   if (!verifier.ok()) {

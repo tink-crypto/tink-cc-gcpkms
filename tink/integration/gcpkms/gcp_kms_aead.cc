@@ -46,7 +46,7 @@ using ::google::cloud::kms::v1::EncryptRequest;
 using ::google::cloud::kms::v1::EncryptResponse;
 using ::google::cloud::kms::v1::KeyManagementService;
 
-util::StatusOr<std::unique_ptr<Aead>> NewGcpKmsAead(
+absl::StatusOr<std::unique_ptr<Aead>> NewGcpKmsAead(
     absl::string_view key_name,
     std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>
         kms_client) {
@@ -63,7 +63,7 @@ util::StatusOr<std::unique_ptr<Aead>> NewGcpKmsAead(
   return absl::WrapUnique(new GcpKmsAead(key_name, kms_client));
 }
 
-util::StatusOr<std::unique_ptr<Aead>> GcpKmsAead::New(
+absl::StatusOr<std::unique_ptr<Aead>> GcpKmsAead::New(
     absl::string_view key_name,
     std::shared_ptr<KeyManagementService::Stub> kms_stub) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
@@ -79,7 +79,7 @@ util::StatusOr<std::unique_ptr<Aead>> GcpKmsAead::New(
   return absl::WrapUnique(new GcpKmsAead(key_name, kms_stub));
 }
 
-util::StatusOr<std::string> GcpKmsAead::Encrypt(
+absl::StatusOr<std::string> GcpKmsAead::Encrypt(
     absl::string_view plaintext, absl::string_view associated_data) const {
   EncryptRequest req;
   req.set_name(key_name_);
@@ -111,7 +111,7 @@ util::StatusOr<std::string> GcpKmsAead::Encrypt(
   return resp.ciphertext();
 }
 
-util::StatusOr<std::string> GcpKmsAead::Decrypt(
+absl::StatusOr<std::string> GcpKmsAead::Decrypt(
     absl::string_view ciphertext, absl::string_view associated_data) const {
   DecryptRequest req;
   req.set_name(key_name_);
