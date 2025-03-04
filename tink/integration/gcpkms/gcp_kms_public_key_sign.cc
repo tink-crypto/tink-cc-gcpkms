@@ -113,7 +113,7 @@ bool RequiresDataForSign(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
 }
 
 // Finds out and returns the proper DigestCase for the given algorithm.
-StatusOr<Digest::DigestCase> GetDigestFromAlgorithm(
+absl::StatusOr<Digest::DigestCase> GetDigestFromAlgorithm(
     CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
   switch (algorithm) {
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
@@ -138,8 +138,8 @@ StatusOr<Digest::DigestCase> GetDigestFromAlgorithm(
   }
 }
 
-StatusOr<std::string> ComputeDigest(absl::string_view data,
-                                    Digest::DigestCase digest_case) {
+absl::StatusOr<std::string> ComputeDigest(absl::string_view data,
+                                          Digest::DigestCase digest_case) {
   const EVP_MD* md;
   switch (digest_case) {
     case Digest::kSha256:
@@ -169,7 +169,7 @@ StatusOr<std::string> ComputeDigest(absl::string_view data,
 // Builds and returns an AsymmetricSignRequest.
 // It determines whether data or digest is required for signing,
 // and prepares the request accordingly.
-StatusOr<AsymmetricSignRequest> BuildAsymmetricSignRequest(
+absl::StatusOr<AsymmetricSignRequest> BuildAsymmetricSignRequest(
     absl::string_view key_name, absl::string_view data, PublicKey public_key) {
   AsymmetricSignRequest request;
   request.set_name(key_name);
@@ -182,13 +182,13 @@ StatusOr<AsymmetricSignRequest> BuildAsymmetricSignRequest(
   }
 
   // Digest is needed; compute it.
-  StatusOr<Digest::DigestCase> digest_case =
+  absl::StatusOr<Digest::DigestCase> digest_case =
       GetDigestFromAlgorithm(public_key.algorithm());
   if (!digest_case.ok()) {
     return digest_case.status();
   }
 
-  StatusOr<std::string> digest_string = ComputeDigest(data, *digest_case);
+  absl::StatusOr<std::string> digest_string = ComputeDigest(data, *digest_case);
   if (!digest_string.ok()) {
     return digest_string.status();
   }
@@ -217,8 +217,7 @@ StatusOr<AsymmetricSignRequest> BuildAsymmetricSignRequest(
 // asymmetric sign requests to Google Cloud KMS (https://cloud.google.com/kms/).
 class GcpKmsPublicKeySign : public PublicKeySign {
  public:
-  crypto::tink::util::StatusOr<std::string> Sign(
-      absl::string_view data) const override;
+  absl::StatusOr<std::string> Sign(absl::string_view data) const override;
 
   GcpKmsPublicKeySign(
       absl::string_view key_name, google::cloud::kms::v1::PublicKey public_key,
@@ -234,7 +233,8 @@ class GcpKmsPublicKeySign : public PublicKeySign {
       kms_client_;
 };
 
-StatusOr<std::string> GcpKmsPublicKeySign::Sign(absl::string_view data) const {
+absl::StatusOr<std::string> GcpKmsPublicKeySign::Sign(
+    absl::string_view data) const {
   if (data.size() > kMaxSignDataSize) {
     return absl::Status(
         absl::StatusCode::kInvalidArgument,
@@ -244,7 +244,7 @@ StatusOr<std::string> GcpKmsPublicKeySign::Sign(absl::string_view data) const {
   }
 
   // Build the sign request.
-  StatusOr<AsymmetricSignRequest> request =
+  absl::StatusOr<AsymmetricSignRequest> request =
       BuildAsymmetricSignRequest(key_name_, data, public_key_);
   if (!request.ok()) {
     return request.status();
@@ -285,7 +285,7 @@ StatusOr<std::string> GcpKmsPublicKeySign::Sign(absl::string_view data) const {
 }
 }  // namespace
 
-StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
+absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
     absl::string_view key_name,
     absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
