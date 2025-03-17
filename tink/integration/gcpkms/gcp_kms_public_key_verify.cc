@@ -25,6 +25,7 @@
 #include "absl/crc/crc32c.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
@@ -40,8 +41,6 @@
 #include "tink/signature/signature_config.h"
 #include "tink/signature/signature_pem_keyset_reader.h"
 #include "tink/signature/signature_public_key.h"
-#include "tink/util/status.h"
-#include "tink/util/statusor.h"
 
 namespace crypto {
 namespace tink {
@@ -49,8 +48,6 @@ namespace integration {
 namespace gcpkms {
 namespace {
 
-using ::crypto::tink::util::Status;
-using ::crypto::tink::util::StatusOr;
 using ::google::cloud::kms::v1::CryptoKeyVersion;
 using ::google::cloud::kms::v1::GetPublicKeyRequest;
 using ::google::cloud::kms::v1::PublicKey;
@@ -385,7 +382,7 @@ class GcpKmsPublicKeyVerify : public PublicKeyVerify {
       std::unique_ptr<PublicKeyVerify> internal_verifier)
       : internal_verifier_(std::move(internal_verifier)) {}
 
-  Status Verify(absl::string_view signature,
+  absl::Status Verify(absl::string_view signature,
                 absl::string_view data) const override {
     return internal_verifier_->Verify(signature, data);
   }

@@ -24,6 +24,7 @@
 #include "absl/crc/crc32c.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -33,8 +34,6 @@
 #include "openssl/digest.h"
 #include "re2/re2.h"
 #include "tink/public_key_sign.h"
-#include "tink/util/status.h"
-#include "tink/util/statusor.h"
 
 namespace crypto {
 namespace tink {
@@ -42,7 +41,6 @@ namespace integration {
 namespace gcpkms {
 namespace {
 
-using ::crypto::tink::util::StatusOr;
 using ::google::cloud::kms::v1::AsymmetricSignRequest;
 using ::google::cloud::kms::v1::AsymmetricSignResponse;
 using ::google::cloud::kms::v1::CryptoKeyVersion;

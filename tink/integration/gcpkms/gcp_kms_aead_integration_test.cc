@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -27,12 +28,11 @@
 #include "gtest/gtest.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "tink/integration/gcpkms/gcp_kms_aead.h"
 #include "tink/integration/gcpkms/gcp_kms_client.h"
-#include "tink/util/status.h"
-#include "tink/util/statusor.h"
 #include "tink/util/test_matchers.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
@@ -88,18 +88,18 @@ Environment* const foo_env = testing::AddGlobalTestEnvironment(
 
 TEST(GcpKmsAeadIntegrationTest, EncryptDecrypt) {
   std::string credentials = RunfilesPath("testdata/gcp/credential.json");
-  util::StatusOr<std::unique_ptr<GcpKmsClient>> client =
+  absl::StatusOr<std::unique_ptr<GcpKmsClient>> client =
       GcpKmsClient::New(/*key_uri=*/"", credentials);
   ASSERT_THAT(client, IsOk());
 
-  util::StatusOr<std::unique_ptr<Aead>> aead =
+  absl::StatusOr<std::unique_ptr<Aead>> aead =
       (*client)->GetAead(kGcpKmsKeyUri);
   ASSERT_THAT(aead, IsOk());
 
   constexpr absl::string_view kPlaintext = "plaintext";
   constexpr absl::string_view kAssociatedData = "associatedData";
 
-  util::StatusOr<std::string> ciphertext =
+  absl::StatusOr<std::string> ciphertext =
       (*aead)->Encrypt(kPlaintext, kAssociatedData);
   ASSERT_THAT(ciphertext, IsOk());
   EXPECT_THAT((*aead)->Decrypt(*ciphertext, kAssociatedData),
@@ -109,11 +109,11 @@ TEST(GcpKmsAeadIntegrationTest, EncryptDecrypt) {
               Not(IsOk()));
 }
 
-util::StatusOr<std::string> ReadFile(const std::string& filename) {
+absl::StatusOr<std::string> ReadFile(const std::string& filename) {
   std::ifstream input_stream;
   input_stream.open(filename, std::ifstream::in);
   if (!input_stream.is_open()) {
-    return util::Status(absl::StatusCode::kInvalidArgument,
+    return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("Error opening file ", filename));
   }
   std::stringstream input;
@@ -125,7 +125,7 @@ util::StatusOr<std::string> ReadFile(const std::string& filename) {
 TEST(GcpKmsAeadIntegrationTest, GcpKmsAeadNewWorks) {
   // Read credentials file.
   std::string credentials_path = RunfilesPath("testdata/gcp/credential.json");
-  util::StatusOr<std::string> json_creds = ReadFile(credentials_path);
+  absl::StatusOr<std::string> json_creds = ReadFile(credentials_path);
   ASSERT_THAT(json_creds, IsOk());
 
   // Create a GCP KMS stub.
@@ -141,14 +141,14 @@ TEST(GcpKmsAeadIntegrationTest, GcpKmsAeadNewWorks) {
       KeyManagementService::NewStub(grpc::CreateCustomChannel(
           "cloudkms.googleapis.com", credentials, args));
 
-  util::StatusOr<std::unique_ptr<Aead>> aead =
+  absl::StatusOr<std::unique_ptr<Aead>> aead =
       GcpKmsAead::New(kGcpKmsKeyName, kms_stub);
   ASSERT_THAT(aead, IsOk());
 
   constexpr absl::string_view kPlaintext = "plaintext";
   constexpr absl::string_view kAssociatedData = "associatedData";
 
-  util::StatusOr<std::string> ciphertext =
+  absl::StatusOr<std::string> ciphertext =
       (*aead)->Encrypt(kPlaintext, kAssociatedData);
   ASSERT_THAT(ciphertext, IsOk());
   EXPECT_THAT((*aead)->Decrypt(*ciphertext, kAssociatedData),
