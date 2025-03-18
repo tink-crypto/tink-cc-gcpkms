@@ -28,6 +28,7 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "tink/aead.h"
@@ -35,8 +36,6 @@
 #include "tink/aead/aead_key_templates.h"
 #include "tink/aead/kms_envelope_aead.h"
 #include "tink/integration/gcpkms/gcp_kms_client.h"
-#include "tink/util/status.h"
-#include "tink/util/statusor.h"
 #include "proto/tink.pb.h"
 
 ABSL_FLAG(std::string, mode, "", "Mode of operation {encrypt|decrypt}");
@@ -53,8 +52,6 @@ namespace {
 using ::crypto::tink::Aead;
 using ::crypto::tink::AeadKeyTemplates;
 using ::crypto::tink::integration::gcpkms::GcpKmsClient;
-using ::crypto::tink::util::Status;
-using ::crypto::tink::util::StatusOr;
 using ::google::crypto::tink::KeyTemplate;
 
 constexpr absl::string_view kEncrypt = "encrypt";
