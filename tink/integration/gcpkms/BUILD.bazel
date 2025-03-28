@@ -33,8 +33,6 @@ cc_library(
         "@com_googlesource_code_re2//:re2",
         "@google_cloud_cpp//:kms",
         "@tink_cc//tink:public_key_sign",
-        "@tink_cc//tink/util:status",
-        "@tink_cc//tink/util:statusor",
     ],
 )
 

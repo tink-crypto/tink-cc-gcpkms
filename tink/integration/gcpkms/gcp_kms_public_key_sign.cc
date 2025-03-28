@@ -59,6 +59,7 @@ static constexpr LazyRE2 kKmsKeyNameFormat = {
 // Returns whether the given algorithm is supported for signing through Tink.
 bool IsSupported(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
   switch (algorithm) {
+    case CryptoKeyVersion::EC_SIGN_ED25519:
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
     case CryptoKeyVersion::EC_SIGN_P384_SHA384:
     case CryptoKeyVersion::EC_SIGN_SECP256K1_SHA256:
@@ -88,6 +89,7 @@ bool RequiresDataForSign(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
                          ProtectionLevel protection_level) {
   // Operate on the data if the algorithm is one of the followings:
   switch (algorithm) {
+    case CryptoKeyVersion::EC_SIGN_ED25519:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_2048:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_3072:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_4096:

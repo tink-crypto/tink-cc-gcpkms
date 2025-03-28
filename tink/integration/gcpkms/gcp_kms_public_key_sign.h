@@ -20,10 +20,10 @@
 #include <memory>
 
 #include "absl/base/nullability.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "tink/public_key_sign.h"
-#include "tink/util/statusor.h"
 
 namespace crypto {
 namespace tink {
