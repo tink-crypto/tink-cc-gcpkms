@@ -44,8 +44,8 @@ namespace gcpkms {
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
 absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
     absl::string_view key_name,
-    absl::Nonnull<
-        std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>>
+    /*absl_nonnull - not yet supported*/
+    std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>
         kms_client);
 
 // Creates a Tink signature public key with the specified CryptoKeyVersion
@@ -55,11 +55,10 @@ absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
 //    projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*.
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
 absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
-CreateSignaturePublicKey(
-    absl::string_view key_name,
-    absl::Nonnull<
-        std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>>
-        kms_client);
+CreateSignaturePublicKey(absl::string_view key_name,
+                         /*absl_nonnull - not yet supported*/ std::shared_ptr<
+                             google::cloud::kms_v1::KeyManagementServiceClient>
+                             kms_client);
 
 // Creates a Tink signature public key from a PEM-formatted key previously
 // fetched from KMS, and the associated CryptoKeyVersion algorithm.

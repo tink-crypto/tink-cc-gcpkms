@@ -287,7 +287,7 @@ absl::StatusOr<std::string> GcpKmsPublicKeySign::Sign(
 
 absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
     absl::string_view key_name,
-    absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
+    /*absl_nonnull - not yet supported*/ std::shared_ptr<KeyManagementServiceClient> kms_client) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
     return absl::Status(
         absl::StatusCode::kInvalidArgument,

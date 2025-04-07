@@ -243,7 +243,7 @@ absl::StatusOr<HashType> GetHashFromAlgorithm(
 
 absl::StatusOr<PublicKey> GetGcpKmsPublicKey(
     absl::string_view key_name,
-    absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
+    /*absl_nonnull - not yet supported*/ std::shared_ptr<KeyManagementServiceClient> kms_client) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
     return absl::Status(
         absl::StatusCode::kInvalidArgument,
@@ -395,7 +395,7 @@ class GcpKmsPublicKeyVerify : public PublicKeyVerify {
 absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
 CreateSignaturePublicKey(
     absl::string_view key_name,
-    absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
+    /*absl_nonnull - not yet supported*/ std::shared_ptr<KeyManagementServiceClient> kms_client) {
   auto gcp_kms_public_key = GetGcpKmsPublicKey(key_name, kms_client);
   if (!gcp_kms_public_key.ok()) {
     return gcp_kms_public_key.status();
@@ -434,7 +434,7 @@ CreateSignaturePublicKey(
 
 absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
     absl::string_view key_name,
-    absl::Nonnull<std::shared_ptr<KeyManagementServiceClient>> kms_client) {
+    /*absl_nonnull - not yet supported*/ std::shared_ptr<KeyManagementServiceClient> kms_client) {
   auto gcp_kms_public_key = GetGcpKmsPublicKey(key_name, kms_client);
   if (!gcp_kms_public_key.ok()) {
     return gcp_kms_public_key.status();
