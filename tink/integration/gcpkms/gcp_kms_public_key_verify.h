@@ -25,7 +25,6 @@
 #include "tink/partial_key_access_token.h"
 #include "tink/public_key_verify.h"
 #include "tink/signature/signature_public_key.h"
-#include "tink/util/statusor.h"
 
 namespace crypto {
 namespace tink {
@@ -60,7 +59,7 @@ CreateSignaturePublicKey(absl::string_view key_name,
                              google::cloud::kms_v1::KeyManagementServiceClient>
                              kms_client);
 
-// Creates a Tink signature public key from a PEM-formatted key previously
+// Creates a Tink SignaturePublicKey from a public key previously
 // fetched from KMS, and the associated CryptoKeyVersion algorithm.
 //
 // See
@@ -68,7 +67,7 @@ CreateSignaturePublicKey(absl::string_view key_name,
 // for more info about fetching the public key from Cloud KMS.
 absl::StatusOr<std::unique_ptr<SignaturePublicKey>>
 CreateSignaturePublicKeyWithNoRpcs(
-    absl::string_view pem,
+    absl::string_view public_key,
     google::cloud::kms::v1::CryptoKeyVersion::CryptoKeyVersionAlgorithm
         algorithm,
     PartialKeyAccessToken token);
@@ -77,7 +76,7 @@ CreateSignaturePublicKeyWithNoRpcs(
 // public key.
 //
 // The input key can be obtained through `CreateSignaturePublicKeyWithNoRpcs`,
-// which does not call KMS and instead takes in a PEM-formatted key directly.
+// which does not call KMS and instead takes in a public key directly.
 absl::StatusOr<std::unique_ptr<PublicKeyVerify>>
 CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key);
 

@@ -32,7 +32,6 @@
 #include "google/cloud/status.h"
 #include "tink/key_status.h"
 #include "tink/keyset_handle.h"
-#include "tink/keyset_handle_builder.h"
 #include "tink/partial_key_access.h"
 #include "tink/public_key_verify.h"
 #include "tink/signature/config_v0.h"
@@ -221,6 +220,101 @@ Q1sM0efzF/Br3aylzgzd+a5KvMq/0WGoVmHgvrH41lVxIlL2K1MHopfWz1Qi9sFVyB3MmIXIpcSL
 GGYPgxL+zvqtZL+01ury1ASUw28414i4LU7OUO3C1oQc/tR4eETXYZ++qSsS6XmT7Br8k7h1VpQ=
 )";
 
+// Generated the private key with Cloud KMS and exported public key.
+constexpr absl::string_view kMlDsaPublicKey = R"(
+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)";
+
+// Generated with Cloud KMS through AsymmetricSign.
+constexpr absl::string_view kMlDsaSignature = R"(
+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
+AAAACA0QGSAn)";
+
 // Generated with:
 // openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:secp256k1 \
 //   | openssl pkey -pubout
@@ -254,22 +348,26 @@ constexpr absl::string_view kKeyNameRsaPss4096Sha512 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/11";
 constexpr absl::string_view kKeyNameEcdsa384 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/12";
+constexpr absl::string_view kKeyNameMlDsa =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/13";
 
 struct GcpPublicKeyParams {
   absl::string_view key_name;
   absl::string_view signature;
+  int expected_calls;
 };
 
 std::vector<GcpPublicKeyParams> GcpPublicKeyParamsValidCombinations() {
   return {
-      {kKeyNameEcdsa, kEcdsaSignature},
-      {kKeyNameEcdsa384, kEcdsa384Signature},
-      {kKeyNameRsaPkcs1, kRsaPkcs1Signature},
-      {kKeyNameRsaPss, kRsaPssSignature},
-      {kKeyNameRsa4096Sha256Pkcs1, kRsa4096Sha256Pkcs1Signature},
-      {kKeyNameRsa4096Sha512Pkcs1, kRsa4096Sha512Pkcs1Signature},
-      {kKeyNameRsaPss4096Sha256, kRsaPss4096Sha256Signature},
-      {kKeyNameRsaPss4096Sha512, kRsaPss4096Sha512Signature},
+      {kKeyNameEcdsa, kEcdsaSignature, 1},
+      {kKeyNameEcdsa384, kEcdsa384Signature, 1},
+      {kKeyNameRsaPkcs1, kRsaPkcs1Signature, 1},
+      {kKeyNameRsaPss, kRsaPssSignature, 1},
+      {kKeyNameRsa4096Sha256Pkcs1, kRsa4096Sha256Pkcs1Signature, 1},
+      {kKeyNameRsa4096Sha512Pkcs1, kRsa4096Sha512Pkcs1Signature, 1},
+      {kKeyNameRsaPss4096Sha256, kRsaPss4096Sha256Signature, 1},
+      {kKeyNameRsaPss4096Sha512, kRsaPss4096Sha512Signature, 1},
+      {kKeyNameMlDsa, kMlDsaSignature, 2},
   };
 }
 
@@ -297,56 +395,68 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::EC_SIGN_P256_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-            response.set_pem(kEcdsaPublicKey);
+            response.mutable_public_key()->set_data(kEcdsaPublicKey);
           } else if (request.name() == kKeyNameEcdsa384) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::EC_SIGN_P384_SHA384);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-            response.set_pem(kEcdsa384PublicKey);
+            response.mutable_public_key()->set_data(kEcdsa384PublicKey);
           } else if (request.name() == kKeyNameRsaPkcs1) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_2048_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-            response.set_pem(kRsaPublicKey);
+            response.mutable_public_key()->set_data(kRsaPublicKey);
           } else if (request.name() == kKeyNameRsa4096Sha256Pkcs1) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-            response.set_pem(kRsa4096PublicKey);
+            response.mutable_public_key()->set_data(kRsa4096PublicKey);
           } else if (request.name() == kKeyNameRsa4096Sha512Pkcs1) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-            response.set_pem(kRsa4096PublicKey);
+            response.mutable_public_key()->set_data(kRsa4096PublicKey);
           } else if (request.name() == kKeyNameRsaPss) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-            response.set_pem(kRsaPublicKey);
+            response.mutable_public_key()->set_data(kRsaPublicKey);
           } else if (request.name() == kKeyNameRsaPss4096Sha256) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-            response.set_pem(kRsa4096PublicKey);
+            response.mutable_public_key()->set_data(kRsa4096PublicKey);
           } else if (request.name() == kKeyNameRsaPss4096Sha512) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA512);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-            response.set_pem(kRsa4096PublicKey);
+            response.mutable_public_key()->set_data(kRsa4096PublicKey);
+          } else if (request.name() == kKeyNameMlDsa) {
+            if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
+              return Status(google::cloud::StatusCode::kInvalidArgument,
+                            "Only NIST_PQC format is supported");
+            }
+            response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            std::string raw_public_key;
+            absl::Base64Unescape(kMlDsaPublicKey, &raw_public_key);
+            response.mutable_public_key()->set_data(raw_public_key);
           } else if (request.name() == kKeyNameEcdsaSecp256k1) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::EC_SIGN_SECP256K1_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::HSM);
-            response.set_pem(kSecp256k1PublicKey);
+            response.mutable_public_key()->set_data(kSecp256k1PublicKey);
           } else if (request.name() == kKeyNameErrorGetPublicKey) {
             return Status(google::cloud::StatusCode::kInternal,
                           "Internal error");
           }
 
-          response.mutable_pem_crc32c()->set_value(
-              static_cast<uint32_t>(absl::ComputeCrc32c(response.pem())));
+          response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
+              static_cast<uint32_t>(
+                  absl::ComputeCrc32c(response.public_key().data())));
           if (request.name() == kKeyNameCrcPemError) {
-            response.mutable_pem_crc32c()->set_value(1773);
+            response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
+                1773);
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::EC_SIGN_P256_SHA256);
           }
@@ -441,7 +551,7 @@ class GcpPublicKeyVerifyTest
 
 TEST_P(GcpPublicKeyVerifyTest, Success) {
   GcpPublicKeyParams test_params = GetParam();
-  ExpectGetPublicKey(1);
+  ExpectGetPublicKey(test_params.expected_calls);
   auto kms_verifier =
       CreateGcpKmsPublicKeyVerify(test_params.key_name, kms_client_);
   EXPECT_THAT(kms_verifier.status(), IsOk());
@@ -460,7 +570,7 @@ class GetSignaturePublicKeyTest
 
 TEST_P(GetSignaturePublicKeyTest, Success) {
   GcpPublicKeyParams test_params = GetParam();
-  ExpectGetPublicKey(1);
+  ExpectGetPublicKey(test_params.expected_calls);
   absl::StatusOr<std::shared_ptr<const SignaturePublicKey>> tink_key =
       CreateSignaturePublicKey(test_params.key_name, kms_client_);
   EXPECT_THAT(tink_key.status(), IsOk());
@@ -577,6 +687,7 @@ GetOfflinePemVerificationValidCombinations() {
        CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA256},
       {kRsa4096PublicKey, kRsaPss4096Sha512Signature,
        CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA512},
+      {kMlDsaPublicKey, kMlDsaSignature, CryptoKeyVersion::PQ_SIGN_ML_DSA_65},
   };
 }
 
@@ -585,9 +696,14 @@ using GcpKmsPublicKeyVerifyOfflineTest =
 
 TEST_P(GcpKmsPublicKeyVerifyOfflineTest, PublicKeyVerifySuccess) {
   OfflinePemVerificationParams test_params = GetParam();
+  std::string raw_public_key(test_params.public_key);
+  if (test_params.algorithm == CryptoKeyVersion::PQ_SIGN_ML_DSA_65) {
+    EXPECT_TRUE(absl::Base64Unescape(test_params.public_key, &raw_public_key));
+  }
+
   absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
       kms_signature_public_key = CreateSignaturePublicKeyWithNoRpcs(
-          test_params.public_key, test_params.algorithm, GetPartialKeyAccess());
+          raw_public_key, test_params.algorithm, GetPartialKeyAccess());
   EXPECT_THAT(kms_signature_public_key.status(), IsOk());
   auto kms_verifier =
       CreateGcpKmsPublicKeyVerifyWithNoRpcs(**kms_signature_public_key);

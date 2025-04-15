@@ -26,6 +26,7 @@
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
@@ -36,8 +37,12 @@
 #include "tink/keyset_handle.h"
 #include "tink/keyset_reader.h"
 #include "tink/parameters.h"
+#include "tink/partial_key_access.h"
 #include "tink/public_key_verify.h"
 #include "tink/signature/config_v0.h"
+#include "tink/signature/key_gen_config_v0.h"
+#include "tink/signature/ml_dsa_parameters.h"
+#include "tink/signature/ml_dsa_public_key.h"
 #include "tink/signature/signature_config.h"
 #include "tink/signature/signature_pem_keyset_reader.h"
 #include "tink/signature/signature_public_key.h"
@@ -73,6 +78,20 @@ bool IsValidAlgorithm(
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512:
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
     case CryptoKeyVersion::EC_SIGN_P384_SHA384:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
+      return true;
+    default:
+      return false;
+  }
+}
+
+// Returns whether or not the Cloud KMS algorithm is PQC.
+bool IsPqcAlgorithm(
+    const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
+  switch (algorithm) {
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
       return true;
     default:
       return false;
@@ -94,17 +113,17 @@ class GcpSignaturePublicKeyParameters : public SignatureParameters {
 
   // Creates a new GcpSignaturePublicKey parameters object.
   static absl::StatusOr<GcpSignaturePublicKeyParameters> Create(
-      absl::string_view pem,
+      absl::string_view public_key,
       CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
     if (!IsValidAlgorithm(algorithm)) {
       return absl::Status(absl::StatusCode::kInvalidArgument,
                           absl::StrCat("Unsupported algorithm: ", algorithm));
     }
 
-    return GcpSignaturePublicKeyParameters(pem, algorithm);
+    return GcpSignaturePublicKeyParameters(public_key, algorithm);
   }
 
-  absl::string_view GetPem() const { return pem_; }
+  absl::string_view GetPublicKey() const { return public_key_; }
   CryptoKeyVersion::CryptoKeyVersionAlgorithm GetAlgorithm() const {
     return algorithm_;
   }
@@ -120,7 +139,7 @@ class GcpSignaturePublicKeyParameters : public SignatureParameters {
     if (that == nullptr) {
       return false;
     }
-    return pem_ == that->pem_ && algorithm_ == that->algorithm_;
+    return algorithm_ == that->algorithm_ && public_key_ == that->public_key_;
   }
 
   std::unique_ptr<Parameters> Clone() const {
@@ -129,11 +148,11 @@ class GcpSignaturePublicKeyParameters : public SignatureParameters {
 
  private:
   explicit GcpSignaturePublicKeyParameters(
-      absl::string_view pem,
+      absl::string_view public_key,
       CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm)
-      : pem_(pem), algorithm_(algorithm) {}
+      : public_key_(public_key), algorithm_(algorithm) {}
 
-  absl::string_view pem_;
+  absl::string_view public_key_;
   CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm_;
 };
 
@@ -147,18 +166,21 @@ class GcpSignaturePublicKey : public SignaturePublicKey {
   GcpSignaturePublicKey& operator=(GcpSignaturePublicKey&& other) = default;
 
   static absl::StatusOr<GcpSignaturePublicKey> Create(
-      absl::string_view pem,
+      absl::string_view public_key,
       CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
       PartialKeyAccessToken token) {
     absl::StatusOr<GcpSignaturePublicKeyParameters> params =
-        GcpSignaturePublicKeyParameters::Create(pem, algorithm);
+        GcpSignaturePublicKeyParameters::Create(public_key, algorithm);
     if (!params.ok()) {
       return params.status();
     }
     return GcpSignaturePublicKey(*params);
   }
 
-  absl::string_view GetPem() const { return GetParameters().GetPem(); }
+  absl::string_view GetPublicKey() const {
+    return GetParameters().GetPublicKey();
+  }
+
   CryptoKeyVersion::CryptoKeyVersionAlgorithm GetAlgorithm() const {
     return GetParameters().GetAlgorithm();
   }
@@ -241,6 +263,47 @@ absl::StatusOr<HashType> GetHashFromAlgorithm(
   }
 }
 
+// Converts the given raw PQC key into a Tink Keyset Handle.
+absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPqcKey(
+    const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
+    absl::string_view public_key) {
+  auto keyset_handle_builder = crypto::tink::KeysetHandleBuilder();
+  switch (algorithm) {
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65: {
+      absl::StatusOr<MlDsaParameters> params =
+          MlDsaParameters::Create(MlDsaParameters::Instance::kMlDsa65,
+                                  MlDsaParameters::Variant::kNoPrefix);
+      if (!params.ok()) {
+        return params.status();
+      }
+      auto signature_public_key = MlDsaPublicKey::Create(
+          *params, public_key, absl::nullopt, GetPartialKeyAccess());
+      if (!signature_public_key.ok()) {
+        return signature_public_key.status();
+      }
+      crypto::tink::KeysetHandleBuilder::Entry entry =
+          crypto::tink::KeysetHandleBuilder::Entry::CreateFromKey(
+              std::make_shared<const MlDsaPublicKey>(
+                  *std::move(signature_public_key)),
+              crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true);
+      keyset_handle_builder.AddEntry(std::move(entry));
+      break;
+    }
+    default:
+      return absl::InternalError(absl::StrCat(
+          "The given algorithm ",
+          CryptoKeyVersion::CryptoKeyVersionAlgorithm_Name(algorithm),
+          " is not supported for verification."));
+  }
+
+  auto keyset_handle = keyset_handle_builder.Build(KeyGenConfigSignatureV0());
+  if (!keyset_handle.ok()) {
+    return keyset_handle.status();
+  }
+  return std::make_unique<KeysetHandle>(std::move(*keyset_handle));
+}
+
 absl::StatusOr<PublicKey> GetGcpKmsPublicKey(
     absl::string_view key_name,
     /*absl_nonnull - not yet supported*/ std::shared_ptr<KeyManagementServiceClient> kms_client) {
@@ -258,8 +321,18 @@ absl::StatusOr<PublicKey> GetGcpKmsPublicKey(
   // Retrieve the related public key from KMS.
   GetPublicKeyRequest request;
   request.set_name(key_name);
+  // Set format to PEM explictly for convenience, so that we use the public_key
+  // response field regardless of which Cloud KMS algorithm is being used.
+  request.set_public_key_format(PublicKey::PEM);
   google::cloud::StatusOr<PublicKey> response =
       kms_client->GetPublicKey(request);
+  // Catch PQC keys missing public_key_format field and send another request.
+  if (!response.ok() &&
+      absl::StrContains(response.status().message(),
+                        "Only NIST_PQC format is supported")) {
+    request.set_public_key_format(PublicKey::NIST_PQC);
+    response = kms_client->GetPublicKey(request);
+  }
   if (!response.ok()) {
     return absl::Status(absl::StatusCode::kInvalidArgument,
                         absl::StrCat("GCP KMS GetPublicKey failed: ",
@@ -273,9 +346,10 @@ absl::StatusOr<PublicKey> GetGcpKmsPublicKey(
                                      "match the requested key name.",
                                      response.status().message()));
   }
-  absl::crc32c_t given_crc32c =
-      static_cast<absl::crc32c_t>(response->pem_crc32c().value());
-  absl::crc32c_t computed_crc32c = absl::ComputeCrc32c(response->pem());
+  absl::crc32c_t given_crc32c = static_cast<absl::crc32c_t>(
+      response->public_key().crc32c_checksum().value());
+  absl::crc32c_t computed_crc32c =
+      absl::ComputeCrc32c(response->public_key().data());
   if (computed_crc32c != given_crc32c) {
     return absl::Status(absl::StatusCode::kInternal,
                         absl::StrCat("Public key checksum mismatch.",
@@ -363,9 +437,13 @@ absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPemKey(
 absl::StatusOr<std::unique_ptr<PublicKeyVerify>>
 GetInternalVerifierForAlgorithm(
     CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
-    absl::string_view pem_key) {
-  absl::StatusOr<std::unique_ptr<KeysetHandle>> keyset_handle =
-      GetTinkKeySetHandleFromPemKey(algorithm, pem_key);
+    absl::string_view public_key) {
+  absl::StatusOr<std::unique_ptr<KeysetHandle>> keyset_handle;
+  if (IsPqcAlgorithm(algorithm)) {
+    keyset_handle = GetTinkKeySetHandleFromPqcKey(algorithm, public_key);
+  } else {
+    keyset_handle = GetTinkKeySetHandleFromPemKey(algorithm, public_key);
+  }
   if (!keyset_handle.ok()) {
     return keyset_handle.status();
   }
@@ -383,7 +461,7 @@ class GcpKmsPublicKeyVerify : public PublicKeyVerify {
       : internal_verifier_(std::move(internal_verifier)) {}
 
   absl::Status Verify(absl::string_view signature,
-                absl::string_view data) const override {
+                      absl::string_view data) const override {
     return internal_verifier_->Verify(signature, data);
   }
 
@@ -406,13 +484,21 @@ CreateSignaturePublicKey(
   if (!register_status.ok()) {
     return register_status;
   }
-  auto tink_keyset_handle = GetTinkKeySetHandleFromPemKey(
-      gcp_kms_public_key->algorithm(), gcp_kms_public_key->pem());
+  absl::StatusOr<std::unique_ptr<KeysetHandle>> tink_keyset_handle;
+  if (IsPqcAlgorithm(gcp_kms_public_key->algorithm())) {
+    tink_keyset_handle =
+        GetTinkKeySetHandleFromPqcKey(gcp_kms_public_key->algorithm(),
+                                      gcp_kms_public_key->public_key().data());
+  } else {
+    tink_keyset_handle =
+        GetTinkKeySetHandleFromPemKey(gcp_kms_public_key->algorithm(),
+                                      gcp_kms_public_key->public_key().data());
+  }
   if (!tink_keyset_handle.ok()) {
     return tink_keyset_handle.status();
   }
 
-  // Assumes the pem_key is set as primary key in the keyset.
+  // Assumes the public key is set as primary key in the keyset.
   // Validate to return error instead of crashing.
   auto keyset_validation = tink_keyset_handle.value()->Validate();
   if (!keyset_validation.ok()) {
@@ -441,7 +527,7 @@ absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
   }
   absl::StatusOr<std::unique_ptr<PublicKeyVerify>> verifier =
       GetInternalVerifierForAlgorithm(gcp_kms_public_key->algorithm(),
-                                      gcp_kms_public_key->pem());
+                                      gcp_kms_public_key->public_key().data());
   if (!verifier.ok()) {
     return verifier.status();
   }
@@ -450,11 +536,11 @@ absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
 
 absl::StatusOr<std::unique_ptr<SignaturePublicKey>>
 CreateSignaturePublicKeyWithNoRpcs(
-    absl::string_view pem,
+    absl::string_view public_key,
     CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
     PartialKeyAccessToken token) {
   absl::StatusOr<GcpSignaturePublicKey> key =
-      GcpSignaturePublicKey::Create(pem, algorithm, token);
+      GcpSignaturePublicKey::Create(public_key, algorithm, token);
   if (!key.ok()) {
     return key.status();
   }
@@ -472,7 +558,7 @@ CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key) {
   }
   absl::StatusOr<std::unique_ptr<PublicKeyVerify>> verifier =
       GetInternalVerifierForAlgorithm(public_key->GetAlgorithm(),
-                                      public_key->GetPem());
+                                      public_key->GetPublicKey());
   if (!verifier.ok()) {
     return verifier.status();
   }

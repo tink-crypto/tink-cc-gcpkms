@@ -52,14 +52,16 @@ cc_library(
         "@tink_cc//tink:cleartext_keyset_handle",
         "@tink_cc//tink:keyset_handle",
         "@tink_cc//tink:keyset_reader",
+        "@tink_cc//tink:partial_key_access",
         "@tink_cc//tink:partial_key_access_token",
         "@tink_cc//tink:public_key_verify",
         "@tink_cc//tink/signature:config_v0",
+        "@tink_cc//tink/signature:key_gen_config_v0",
+        "@tink_cc//tink/signature:ml_dsa_parameters",
+        "@tink_cc//tink/signature:ml_dsa_public_key",
         "@tink_cc//tink/signature:signature_config",
         "@tink_cc//tink/signature:signature_pem_keyset_reader",
         "@tink_cc//tink/signature:signature_public_key",
-        "@tink_cc//tink/util:status",
-        "@tink_cc//tink/util:statusor",
     ],
 )
 
