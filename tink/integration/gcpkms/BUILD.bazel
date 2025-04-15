@@ -62,6 +62,8 @@ cc_library(
         "@tink_cc//tink/signature:signature_config",
         "@tink_cc//tink/signature:signature_pem_keyset_reader",
         "@tink_cc//tink/signature:signature_public_key",
+        "@tink_cc//tink/signature:slh_dsa_parameters",
+        "@tink_cc//tink/signature:slh_dsa_public_key",
     ],
 )
 

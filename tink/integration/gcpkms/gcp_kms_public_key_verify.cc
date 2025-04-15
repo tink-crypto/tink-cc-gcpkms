@@ -46,6 +46,8 @@
 #include "tink/signature/signature_config.h"
 #include "tink/signature/signature_pem_keyset_reader.h"
 #include "tink/signature/signature_public_key.h"
+#include "tink/signature/slh_dsa_parameters.h"
+#include "tink/signature/slh_dsa_public_key.h"
 
 namespace crypto {
 namespace tink {
@@ -285,6 +287,28 @@ absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPqcKey(
           crypto::tink::KeysetHandleBuilder::Entry::CreateFromKey(
               std::make_shared<const MlDsaPublicKey>(
                   *std::move(signature_public_key)),
+              crypto::tink::KeyStatus::kEnabled,
+              /*is_primary=*/true);
+      keyset_handle_builder.AddEntry(std::move(entry));
+      break;
+    }
+    case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S: {
+      absl::StatusOr<SlhDsaParameters> params = SlhDsaParameters::Create(
+          SlhDsaParameters::HashType::kSha2, /*private_key_size_in_bytes=*/64,
+          SlhDsaParameters::SignatureType::kSmallSignature,
+          SlhDsaParameters::Variant::kNoPrefix);
+      if (!params.ok()) {
+        return params.status();
+      }
+      auto signature_public_key = SlhDsaPublicKey::Create(
+          *params, public_key, absl::nullopt, GetPartialKeyAccess());
+      if (!signature_public_key.ok()) {
+        return signature_public_key.status();
+      }
+      crypto::tink::KeysetHandleBuilder::Entry entry =
+          crypto::tink::KeysetHandleBuilder::Entry::CreateFromKey(
+              std::make_shared<const SlhDsaPublicKey>(
+                  std::move(*signature_public_key)),
               crypto::tink::KeyStatus::kEnabled,
               /*is_primary=*/true);
       keyset_handle_builder.AddEntry(std::move(entry));
