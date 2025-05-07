@@ -144,7 +144,7 @@ class GcpSignaturePublicKeyParameters : public SignatureParameters {
     return algorithm_ == that->algorithm_ && public_key_ == that->public_key_;
   }
 
-  std::unique_ptr<Parameters> Clone() const {
+  std::unique_ptr<Parameters> Clone() const override {
     return std::make_unique<GcpSignaturePublicKeyParameters>(*this);
   }
 
@@ -203,7 +203,7 @@ class GcpSignaturePublicKey : public SignaturePublicKey {
     return GetParameters() == that->GetParameters();
   }
 
-  std::unique_ptr<Key> Clone() const {
+  std::unique_ptr<Key> Clone() const override {
     return std::make_unique<GcpSignaturePublicKey>(*this);
   }
 

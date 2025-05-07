@@ -167,13 +167,12 @@ def tink_cc_gcpkms_deps():
         )
 
     if not native.existing_rule("tink_cc"):
-        # Commit from 2024-11-20.
+        # Release from 2025-05-06.
         http_archive(
             name = "tink_cc",
-            sha256 = "d19bde114b896a28af1bb4ee7867508da76dde3f62495cd9b6383e02900eeac3",
-            # TODO: Switch to v2.4.0 when available.
-            strip_prefix = "tink-cc-9de4744c1a03ad67a22b3dfffe6d59e7b9542be8",
-            urls = ["https://github.com/tink-crypto/tink-cc/archive/9de4744c1a03ad67a22b3dfffe6d59e7b9542be8.tar.gz"],
+            sha256 = "06c4d49b0b1357f0b8c3abc77a7d920130dc868e4597d432a9ce1cda4f65e382",
+            strip_prefix = "tink-cc-2.4.0",
+            urls = ["https://github.com/tink-crypto/tink-cc/releases/download/v2.4.0/tink-cc-2.4.0.zip"],
         )
 
     if not native.existing_rule("com_googlesource_code_re2"):
