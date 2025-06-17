@@ -83,8 +83,8 @@ absl::StatusOr<std::string> GcpKmsAead::Encrypt(
     absl::string_view plaintext, absl::string_view associated_data) const {
   EncryptRequest req;
   req.set_name(key_name_);
-  req.set_plaintext(std::string(plaintext));
-  req.set_additional_authenticated_data(std::string(associated_data));
+  req.set_plaintext(plaintext);
+  req.set_additional_authenticated_data(associated_data);
 
   if (kms_client_) {
     auto response = kms_client_->Encrypt(req);
@@ -115,8 +115,8 @@ absl::StatusOr<std::string> GcpKmsAead::Decrypt(
     absl::string_view ciphertext, absl::string_view associated_data) const {
   DecryptRequest req;
   req.set_name(key_name_);
-  req.set_ciphertext(std::string(ciphertext));
-  req.set_additional_authenticated_data(std::string(associated_data));
+  req.set_ciphertext(ciphertext);
+  req.set_additional_authenticated_data(associated_data);
   if (kms_client_) {
     auto response = kms_client_->Decrypt(req);
     if (!response.ok()) {
