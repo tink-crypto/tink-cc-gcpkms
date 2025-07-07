@@ -7,44 +7,22 @@ def _grpc_deps():
 
     Dependencies taken from: https://github.com/grpc/grpc/blob/v1.59.3/bazel/grpc_deps.bzl.
     """
+    if "rules_java" not in native.existing_rules():
+        http_archive(
+            name = "rules_java",
+            urls = [
+                "https://github.com/bazelbuild/rules_java/releases/download/8.6.3/rules_java-8.6.3.tar.gz",
+            ],
+            sha256 = "6d8c6d5cd86fed031ee48424f238fa35f33abc9921fd97dd4ae1119a29fc807f",
+        )
+
     if "com_google_protobuf" not in native.existing_rules():
         http_archive(
             name = "com_google_protobuf",
-            sha256 = "387478260190c540388839a3449c635a69708d92fc38ea6e2364b1196db90ea5",
-            strip_prefix = "protobuf-2434ef2adf0c74149b9d547ac5fb545a1ff8b6b5",
-            urls = [
-                # https://github.com/protocolbuffers/protobuf/commits/v26.1
-                "https://storage.googleapis.com/grpc-bazel-mirror/github.com/protocolbuffers/protobuf/archive/2434ef2adf0c74149b9d547ac5fb545a1ff8b6b5.tar.gz",
-                "https://github.com/protocolbuffers/protobuf/archive/2434ef2adf0c74149b9d547ac5fb545a1ff8b6b5.tar.gz",
-            ],
-            patches = [
-                "@com_github_grpc_grpc//third_party:protobuf.patch",
-                "@com_github_grpc_grpc//third_party:protobuf.10007.patch",
-            ],
-            patch_args = ["-p1"],
-        )
-
-    if "upb" not in native.existing_rules():
-        http_archive(
-            name = "upb",
-            sha256 = "5147e0ab6a28421d1e49004f4a205d84f06b924585e15eaa884cfe13289165b7",
-            strip_prefix = "upb-42cd08932e364a4cde35033b73f15c30250d7c2e",
-            urls = [
-                # https://github.com/protocolbuffers/upb/commits/24.x
-                "https://storage.googleapis.com/grpc-bazel-mirror/github.com/protocolbuffers/upb/archive/42cd08932e364a4cde35033b73f15c30250d7c2e.tar.gz",
-                "https://github.com/protocolbuffers/upb/archive/42cd08932e364a4cde35033b73f15c30250d7c2e.tar.gz",
-            ],
-        )
-
-    if "envoy_api" not in native.existing_rules():
-        http_archive(
-            name = "envoy_api",
-            sha256 = "ddd3beedda1178a79e0d988f76f362002aced09749452515853f106e22bd2249",
-            strip_prefix = "data-plane-api-78f198cf96ecdc7120ef640406770aa01af775c4",
-            urls = [
-                "https://storage.googleapis.com/grpc-bazel-mirror/github.com/envoyproxy/data-plane-api/archive/78f198cf96ecdc7120ef640406770aa01af775c4.tar.gz",
-                "https://github.com/envoyproxy/data-plane-api/archive/78f198cf96ecdc7120ef640406770aa01af775c4.tar.gz",
-            ],
+            sha256 = "6544e5ceec7f29d00397193360435ca8b3c4e843de3cf5698a99d36b72d65342",
+            strip_prefix = "protobuf-30.2",
+            urls = ["https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protobuf-30.2.zip"],
+            repo_mapping = {"@abseil-cpp": "@com_google_absl"},
         )
 
     if "io_bazel_rules_go" not in native.existing_rules():
@@ -77,35 +55,13 @@ def _grpc_deps():
             ],
         )
 
-    if "bazel_gazelle" not in native.existing_rules():
-        http_archive(
-            name = "bazel_gazelle",
-            sha256 = "de69a09dc70417580aabf20a28619bb3ef60d038470c7cf8442fafcf627c21cb",
-            urls = [
-                "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.24.0/bazel-gazelle-v0.24.0.tar.gz",
-                "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.24.0/bazel-gazelle-v0.24.0.tar.gz",
-            ],
-        )
-
-    if "com_envoyproxy_protoc_gen_validate" not in native.existing_rules():
-        http_archive(
-            name = "com_envoyproxy_protoc_gen_validate",
-            strip_prefix = "protoc-gen-validate-4694024279bdac52b77e22dc87808bd0fd732b69",
-            sha256 = "1e490b98005664d149b379a9529a6aa05932b8a11b76b4cd86f3d22d76346f47",
-            urls = [
-                "https://github.com/envoyproxy/protoc-gen-validate/archive/4694024279bdac52b77e22dc87808bd0fd732b69.tar.gz",
-            ],
-            patches = ["@com_github_grpc_grpc//third_party:protoc-gen-validate.patch"],
-            patch_args = ["-p1"],
-        )
-
     if not native.existing_rule("com_github_grpc_grpc"):
         # Release from 2023-08-16.
         http_archive(
             name = "com_github_grpc_grpc",
-            sha256 = "14f301f9a6c295f2d3fdae4704182721097a996fb2211d05213096321fc572ac",
-            strip_prefix = "grpc-1.65.5",
-            urls = ["https://github.com/grpc/grpc/archive/refs/tags/v1.65.5.zip"],
+            sha256 = "75a8b35cd65ab2b65fa47c255a772a257958387e1fcb65ead70b0e78ee03b079",
+            strip_prefix = "grpc-1.73.1",
+            urls = ["https://github.com/grpc/grpc/archive/refs/tags/v1.73.1.zip"],
         )
 
 def tink_cc_gcpkms_deps():
