@@ -283,6 +283,31 @@ absl::StatusOr<std::string> GcpKmsPublicKeySign::Sign(
   // Return the signature.
   return response->signature();
 }
+
+// Tries to get the public key from KMS. Requires that the Public Key Format is
+// explicitly set in the request.
+absl::StatusOr<PublicKey> TryGetPublicKey(
+    /*absl_nonnull - not yet supported*/ std::shared_ptr<KeyManagementServiceClient> kms_client,
+    const GetPublicKeyRequest& request) {
+  if (request.public_key_format() == PublicKey::PUBLIC_KEY_FORMAT_UNSPECIFIED) {
+    return absl::InvalidArgumentError("Public Key Format must be specified");
+  }
+  google::cloud::StatusOr<PublicKey> response =
+      kms_client->GetPublicKey(request);
+  if (!response.ok()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "GCP KMS GetPublicKey failed: ", response.status().message()));
+  }
+  absl::crc32c_t given_crc32c(response->public_key().crc32c_checksum().value());
+  absl::crc32c_t computed_crc32c(
+      absl::ComputeCrc32c(response->public_key().data()));
+  if (computed_crc32c != given_crc32c) {
+    return absl::InternalError(
+        absl::StrCat("GCP KMS GetPublicKey Checksum Verification Failed: ",
+                     response.status().message()));
+  }
+  return *response;
+}
 }  // namespace
 
 absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
@@ -302,20 +327,22 @@ absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
   // how to prepare the later AsymmetricSign requests.
   GetPublicKeyRequest request;
   request.set_name(key_name);
-  google::cloud::StatusOr<PublicKey> response =
-      kms_client->GetPublicKey(request);
-  // Catch PQC keys missing public_key_format field and send another request.
+  // By setting the PEM field explicitly, we are able to directly use
+  // the PublicKey field in the response, and don't need to use the
+  // pem and pem_crc32c fields separately.
+  request.set_public_key_format(PublicKey::PEM);
+  absl::StatusOr<PublicKey> response = TryGetPublicKey(kms_client, request);
+  // Handle PQC keys which don't support PEM format.
   if (!response.ok() &&
       absl::StrContains(response.status().message(),
                         "Only NIST_PQC format is supported")) {
     request.set_public_key_format(PublicKey::NIST_PQC);
-    response = kms_client->GetPublicKey(request);
+    response = TryGetPublicKey(kms_client, request);
   }
   if (!response.ok()) {
-    return absl::Status(absl::StatusCode::kInvalidArgument,
-                        absl::StrCat("GCP KMS GetPublicKey failed: ",
-                                     response.status().message()));
+    return response.status();
   }
+
   if (!IsSupported(response->algorithm())) {
     return absl::Status(
         absl::StatusCode::kInvalidArgument,

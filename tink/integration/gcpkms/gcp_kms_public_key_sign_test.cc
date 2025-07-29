@@ -69,6 +69,10 @@ constexpr absl::string_view kKeyNameErrorWrongKeyName =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/8";
 constexpr absl::string_view kKeyNameErrorUnsupportedAlgorithm =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/9";
+constexpr absl::string_view kKeyNameErrorChecksumMismatchGetPublicKey =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/10";
+constexpr absl::string_view kKeyNameErrorChecksumMismatchGetPublicKeyPqc =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/11";
 
 class TestGcpKmsPublicKeySign : public testing::Test {
  public:
@@ -126,6 +130,12 @@ class TestGcpKmsPublicKeySign : public testing::Test {
         .WillRepeatedly([&](kmsV1::GetPublicKeyRequest const& request)
                             -> StatusOr<kmsV1::PublicKey> {
           kmsV1::PublicKey response;
+          // All use PEM, unless otherwise specified (and overwritten)
+          response.set_public_key_format(kmsV1::PublicKey::PEM);
+          response.mutable_public_key()->set_data("public key data");
+          response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
+              static_cast<uint32_t>(
+                  absl::ComputeCrc32c(response.public_key().data())));
           if (request.name() == kKeyNameRequiresData1 ||
               request.name() == kKeyNameErrorAsymmetricSign ||
               request.name() == kKeyNameErrorCrc32c ||
@@ -152,6 +162,25 @@ class TestGcpKmsPublicKeySign : public testing::Test {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_DECRYPT_OAEP_2048_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+          } else if (request.name() ==
+                     kKeyNameErrorChecksumMismatchGetPublicKey) {
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_2048);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
+                1);
+          } else if (request.name() ==
+                     kKeyNameErrorChecksumMismatchGetPublicKeyPqc) {
+            if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
+              return Status(
+                  google::cloud::StatusCode::kInvalidArgument,
+                  "Only NIST_PQC format is supported for PQC algorithms.");
+            }
+            response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
+            response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
+                1);
           }
           return StatusOr<kmsV1::PublicKey>(response);
         });
@@ -210,6 +239,24 @@ TEST_F(TestGcpKmsPublicKeySign, GetPublicKeyFails) {
   EXPECT_THAT(kmsSigner.status(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("GCP KMS GetPublicKey failed")));
+}
+
+TEST_F(TestGcpKmsPublicKeySign, ChecksumMismatchFailsGetPublicKey) {
+  ExpectGetPublicKey(1);
+  auto kmsSigner = CreateGcpKmsPublicKeySign(
+      kKeyNameErrorChecksumMismatchGetPublicKey, kms_client_);
+  EXPECT_THAT(kmsSigner.status(),
+              StatusIs(absl::StatusCode::kInternal,
+                       HasSubstr("Checksum Verification Failed")));
+}
+
+TEST_F(TestGcpKmsPublicKeySign, ChecksumMismatchFailsGetPublicKeyPqc) {
+  ExpectGetPublicKey(2);
+  auto kmsSigner = CreateGcpKmsPublicKeySign(
+      kKeyNameErrorChecksumMismatchGetPublicKeyPqc, kms_client_);
+  EXPECT_THAT(kmsSigner.status(),
+              StatusIs(absl::StatusCode::kInternal,
+                       HasSubstr("Checksum Verification Failed")));
 }
 
 TEST_F(TestGcpKmsPublicKeySign, UnsupportedAlgorithmFails) {
