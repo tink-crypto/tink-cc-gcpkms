@@ -38,21 +38,15 @@ def _grpc_deps():
     if "build_bazel_rules_apple" not in native.existing_rules():
         http_archive(
             name = "build_bazel_rules_apple",
-            sha256 = "f94e6dddf74739ef5cb30f000e13a2a613f6ebfa5e63588305a71fce8a8a9911",
-            urls = [
-                "https://storage.googleapis.com/grpc-bazel-mirror/github.com/bazelbuild/rules_apple/releases/download/1.1.3/rules_apple.1.1.3.tar.gz",
-                "https://github.com/bazelbuild/rules_apple/releases/download/1.1.3/rules_apple.1.1.3.tar.gz",
-            ],
+            sha256 = "ef8a5744b2ffff49f47647226f69f0f06522ca2e8a6fa1aaf5d65d5314813c34",
+            urls = ["https://github.com/bazelbuild/rules_apple/releases/download/4.2.0/rules_apple.4.2.0.tar.gz"],
         )
 
     if "build_bazel_apple_support" not in native.existing_rules():
         http_archive(
             name = "build_bazel_apple_support",
-            sha256 = "f4fdf5c9b42b92ea12f229b265d74bb8cedb8208ca7a445b383c9f866cf53392",
-            urls = [
-                "https://storage.googleapis.com/grpc-bazel-mirror/github.com/bazelbuild/apple_support/releases/download/1.3.1/apple_support.1.3.1.tar.gz",
-                "https://github.com/bazelbuild/apple_support/releases/download/1.3.1/apple_support.1.3.1.tar.gz",
-            ],
+            sha256 = "a270f034007ab6111645d27a8ed88b47ce2a75b608af633eeca889cb5e07ae0d",
+            urls = ["https://github.com/bazelbuild/apple_support/releases/download/1.24.1/apple_support.1.24.1.tar.gz"],
         )
 
     if not native.existing_rule("com_github_grpc_grpc"):

@@ -1,0 +1,16 @@
+package(default_visibility = ["//:__subpackages__"])
+
+licenses(["notice"])
+
+cc_library(
+    name = "test_file_util",
+    testonly = 1,
+    srcs = ["test_file_util.cc"],
+    hdrs = ["test_file_util.h"],
+    include_prefix = "tink/internal",
+    deps = [
+        "@bazel_tools//tools/cpp/runfiles",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)

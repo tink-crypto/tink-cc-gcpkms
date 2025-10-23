@@ -65,6 +65,10 @@ readonly MANUAL_TARGETS
 ./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
   ./kokoro/testutils/run_bazel_tests.sh . "${MANUAL_TARGETS[@]}"
 
+./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
+  ./kokoro/testutils/run_bazel_tests.sh -b "--noenable_bzlmod" \
+  -t "--noenable_bzlmod" . "${MANUAL_TARGETS[@]}"
+
 # Test examples.
 EXAMPLES_MANUAL_TARGETS=()
 if [[ "${IS_KOKORO}" == "true" ]]; then
@@ -74,3 +78,6 @@ readonly EXAMPLES_MANUAL_TARGETS
 
 ./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
   ./kokoro/testutils/run_bazel_tests.sh examples "${EXAMPLES_MANUAL_TARGETS[@]}"
+./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
+  ./kokoro/testutils/run_bazel_tests.sh  -b "--noenable_bzlmod" \
+  -t "--noenable_bzlmod" examples "${EXAMPLES_MANUAL_TARGETS[@]}"
