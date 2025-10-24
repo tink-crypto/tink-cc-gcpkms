@@ -5,18 +5,18 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Direct dependencies.
 http_archive(
     name = "com_google_absl",
-    sha256 = "de649bb5a392b1c63a67f66bf992a72ff3c4b6b130b8b9dc95c31b962ec49e7a",
-    strip_prefix = "abseil-cpp-20240722.1",
+    sha256 = "1692f77d1739bacf3f94337188b78583cf09bab7e420d2dc6c5605a4f86785a1",
+    strip_prefix = "abseil-cpp-20250814.1",
     urls = [
-        "https://github.com/abseil/abseil-cpp/archive/refs/tags/20240722.1.zip",
+        "https://github.com/abseil/abseil-cpp/releases/download/20250814.1/abseil-cpp-20250814.1.tar.gz",
     ],
 )
 
 http_archive(
     name = "tink_cc",
-    sha256 = "3080600b6c38421ebaca5bfc460aa965afc88c877695c080019a8905f0f1c1b8",
-    strip_prefix = "tink-cc-2.1.1",
-    urls = ["https://github.com/tink-crypto/tink-cc/releases/download/v2.1.1/tink-cc-2.1.1.zip"],
+    sha256 = "06c4d49b0b1357f0b8c3abc77a7d920130dc868e4597d432a9ce1cda4f65e382",
+    strip_prefix = "tink-cc-2.4.0",
+    urls = ["https://github.com/tink-crypto/tink-cc/releases/download/v2.4.0/tink-cc-2.4.0.zip"],
 )
 
 local_repository(
