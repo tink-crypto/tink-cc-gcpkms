@@ -20,7 +20,6 @@ module(name = "tink_cc_examples")
 bazel_dep(
     name = "tink_cc_gcpkms",
 )
-
 local_path_override(
     module_name = "tink_cc_gcpkms",
     path = "../",
@@ -30,15 +29,13 @@ bazel_dep(
     name = "tink_cc",
     version = "2.4.0",
 )
-
 bazel_dep(
     name = "googletest",
     version = "1.17.0",
     repo_name = "com_google_googletest",
 )
-
 bazel_dep(
     name = "abseil-cpp",
-    version = "20250127.1",
+    version = "20250814.1",
     repo_name = "com_google_absl",
 )
