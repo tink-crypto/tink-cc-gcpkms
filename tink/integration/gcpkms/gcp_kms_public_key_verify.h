@@ -43,7 +43,7 @@ namespace gcpkms {
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
 absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
     absl::string_view key_name,
-    /*absl_nonnull - not yet supported*/
+    absl_nonnull
     std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>
         kms_client);
 
@@ -55,7 +55,7 @@ absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
 absl::StatusOr<std::shared_ptr<const SignaturePublicKey>>
 CreateSignaturePublicKey(absl::string_view key_name,
-                         /*absl_nonnull - not yet supported*/ std::shared_ptr<
+                         absl_nonnull std::shared_ptr<
                              google::cloud::kms_v1::KeyManagementServiceClient>
                              kms_client);
 

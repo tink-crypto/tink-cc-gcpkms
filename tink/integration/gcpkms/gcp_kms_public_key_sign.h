@@ -41,7 +41,7 @@ namespace gcpkms {
 // See https://cloud.google.com/kms/docs/object-hierarchy for more info.
 absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
     absl::string_view key_name,
-    /*absl_nonnull - not yet supported*/
+    absl_nonnull
     std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>
         kms_client);
 

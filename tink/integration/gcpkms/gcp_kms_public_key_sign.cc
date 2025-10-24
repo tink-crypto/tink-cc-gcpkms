@@ -287,7 +287,7 @@ absl::StatusOr<std::string> GcpKmsPublicKeySign::Sign(
 // Tries to get the public key from KMS. Requires that the Public Key Format is
 // explicitly set in the request.
 absl::StatusOr<PublicKey> TryGetPublicKey(
-    /*absl_nonnull - not yet supported*/ std::shared_ptr<KeyManagementServiceClient> kms_client,
+    absl_nonnull std::shared_ptr<KeyManagementServiceClient> kms_client,
     const GetPublicKeyRequest& request) {
   if (request.public_key_format() == PublicKey::PUBLIC_KEY_FORMAT_UNSPECIFIED) {
     return absl::InvalidArgumentError("Public Key Format must be specified");
@@ -312,7 +312,7 @@ absl::StatusOr<PublicKey> TryGetPublicKey(
 
 absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
     absl::string_view key_name,
-    /*absl_nonnull - not yet supported*/ std::shared_ptr<KeyManagementServiceClient> kms_client) {
+    absl_nonnull std::shared_ptr<KeyManagementServiceClient> kms_client) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
     return absl::Status(
         absl::StatusCode::kInvalidArgument,
