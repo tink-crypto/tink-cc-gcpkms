@@ -49,6 +49,13 @@ bazel_dep(
     version = "1.74.1",
     repo_name = "com_github_grpc_grpc",
 )
+single_version_override(
+    module_name = "grpc",
+    patch_strip = 1,
+    patches = ["//tink/integration/gcpkms:grpc.patch"],
+    version = "1.74.1",
+)
+
 bazel_dep(
     name = "tink_cc",
     version = "2.4.0",
