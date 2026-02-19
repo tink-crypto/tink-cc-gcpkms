@@ -82,6 +82,17 @@ bool IsSupported(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
   }
 }
 
+// Returns whether the given algorithm is a PQC algorithm.
+bool IsPqcAlgorithm(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
+  switch (algorithm) {
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
+      return true;
+    default:
+      return false;
+  }
+}
+
 // Some AsymmetricSign algorithms require data as input and some other
 // operate on a digest of the data. This method determines if data itself is
 // required for signing and returns true if so.
@@ -332,10 +343,12 @@ absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
   // pem and pem_crc32c fields separately.
   request.set_public_key_format(PublicKey::PEM);
   absl::StatusOr<PublicKey> response = TryGetPublicKey(kms_client, request);
-  // Handle PQC keys which don't support PEM format.
-  if (!response.ok() &&
-      absl::StrContains(response.status().message(),
-                        "Only NIST_PQC format is supported")) {
+  // Set public_key_format for PQC keys.
+  // While some algorithms do support PEM format, we use raw bytes for now.
+  if ((!response.ok() &&
+       absl::StrContains(response.status().message(),
+                         "Only NIST_PQC format is supported")) ||
+      (response.ok() && IsPqcAlgorithm(response->algorithm()))) {
     request.set_public_key_format(PublicKey::NIST_PQC);
     response = TryGetPublicKey(kms_client, request);
   }

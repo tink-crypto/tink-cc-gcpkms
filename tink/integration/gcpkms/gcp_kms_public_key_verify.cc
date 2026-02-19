@@ -351,9 +351,11 @@ absl::StatusOr<PublicKey> GetGcpKmsPublicKey(
   google::cloud::StatusOr<PublicKey> response =
       kms_client->GetPublicKey(request);
   // Catch PQC keys missing public_key_format field and send another request.
-  if (!response.ok() &&
-      absl::StrContains(response.status().message(),
-                        "Only NIST_PQC format is supported")) {
+  // While some algorithms do support PEM format, we use raw bytes for now.
+  if ((!response.ok() &&
+       absl::StrContains(response.status().message(),
+                         "Only NIST_PQC format is supported")) ||
+      (response.ok() && IsPqcAlgorithm(response->algorithm()))) {
     request.set_public_key_format(PublicKey::NIST_PQC);
     response = kms_client->GetPublicKey(request);
   }

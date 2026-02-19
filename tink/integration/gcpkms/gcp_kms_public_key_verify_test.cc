@@ -574,14 +574,19 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
             response.mutable_public_key()->set_data(kRsa4096PublicKey);
           } else if (request.name() == kKeyNameMlDsa) {
             if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
-              return Status(google::cloud::StatusCode::kInvalidArgument,
-                            "Only NIST_PQC format is supported");
+              // Return sample PEM key. This should not be used, and the library
+              // should retry the GetPublicKey call with NIST_PQC instead.
+              response.mutable_public_key()->set_data("public key data");
+              response.set_algorithm(
+                  kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
+            } else {
+              response.set_algorithm(
+                  kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
+              response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+              std::string raw_public_key;
+              absl::Base64Unescape(kMlDsaPublicKey, &raw_public_key);
+              response.mutable_public_key()->set_data(raw_public_key);
             }
-            response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
-            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-            std::string raw_public_key;
-            absl::Base64Unescape(kMlDsaPublicKey, &raw_public_key);
-            response.mutable_public_key()->set_data(raw_public_key);
           } else if (request.name() == kKeyNameSlhDsa) {
             if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
               return Status(google::cloud::StatusCode::kInvalidArgument,

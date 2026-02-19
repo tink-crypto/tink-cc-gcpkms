@@ -73,6 +73,8 @@ constexpr absl::string_view kKeyNameErrorChecksumMismatchGetPublicKey =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/10";
 constexpr absl::string_view kKeyNameErrorChecksumMismatchGetPublicKeyPqc =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/11";
+constexpr absl::string_view kKeyNameMlDsaPemSupported =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/12";
 
 class TestGcpKmsPublicKeySign : public testing::Test {
  public:
@@ -176,11 +178,17 @@ class TestGcpKmsPublicKeySign : public testing::Test {
                   google::cloud::StatusCode::kInvalidArgument,
                   "Only NIST_PQC format is supported for PQC algorithms.");
             }
-            response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
             response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
             response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
                 1);
+          } else if (request.name() == kKeyNameMlDsaPemSupported) {
+            response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
+            if (request.public_key_format() == kmsV1::PublicKey::NIST_PQC) {
+              response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
+            }
           }
           return StatusOr<kmsV1::PublicKey>(response);
         });
@@ -197,7 +205,8 @@ class TestGcpKmsPublicKeySign : public testing::Test {
                 google::cloud::StatusCode::kInvalidArgument,
                 "Only NIST_PQC format is supported for PQC algorithms.");
           }
-          response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
+          response.set_algorithm(
+              kmsV1::CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S);
           response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
           return StatusOr<kmsV1::PublicKey>(response);
         });
@@ -356,12 +365,25 @@ TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDigestSuccess) {
   EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kDigest)));
 }
 
-TEST_F(TestGcpKmsPublicKeySign, PublicKeySignPqcAlgorithmSuccess) {
+TEST_F(TestGcpKmsPublicKeySign, PublicKeySignSlhDsaAlgorithmSuccess) {
   DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresData1);
+  // SLH-DSA does not support PEM format.
   ExpectPqcGetPublicKey(/*times*/ 2);
   ExpectSign(signer, /*times*/ 1);
   auto kmsSigner =
       CreateGcpKmsPublicKeySign(kKeyNameRequiresData1, kms_client_);
+  EXPECT_THAT(kmsSigner.status(), IsOk());
+  EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kData)));
+}
+
+TEST_F(TestGcpKmsPublicKeySign, PublicKeySignMlDsaAlgorithmSuccess) {
+  DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresData1);
+  // ML-DSA does support PEM format, but we need raw bytes anyways, so we still
+  // send two GetPublicKey requests.
+  ExpectGetPublicKey(/*times*/ 2);
+  ExpectSign(signer, /*times*/ 1);
+  auto kmsSigner =
+      CreateGcpKmsPublicKeySign(kKeyNameMlDsaPemSupported, kms_client_);
   EXPECT_THAT(kmsSigner.status(), IsOk());
   EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kData)));
 }
