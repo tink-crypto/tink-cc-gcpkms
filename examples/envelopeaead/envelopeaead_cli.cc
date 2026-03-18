@@ -25,8 +25,8 @@
 
 #include "absl/flags/parse.h"
 #include "absl/flags/flag.h"
-#include "absl/log/check.h"
-#include "absl/log/log.h"
+#include "absl/log/absl_check.h"
+#include "absl/log/absl_log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -59,15 +59,15 @@ constexpr absl::string_view kDecrypt = "decrypt";
 
 void ValidateParams() {
   // [START_EXCLUDE]
-  CHECK(absl::GetFlag(FLAGS_mode) == kEncrypt ||
+  ABSL_CHECK(absl::GetFlag(FLAGS_mode) == kEncrypt ||
         absl::GetFlag(FLAGS_mode) == kDecrypt)
       << "Invalid mode " << absl::GetFlag(FLAGS_mode)
       << "; must be `encrypt` or `decrypt`";
-  CHECK(!absl::GetFlag(FLAGS_kek_uri).empty())
+  ABSL_CHECK(!absl::GetFlag(FLAGS_kek_uri).empty())
       << "Keyset file must be specified";
-  CHECK(!absl::GetFlag(FLAGS_input_filename).empty())
+  ABSL_CHECK(!absl::GetFlag(FLAGS_input_filename).empty())
       << "Input file must be specified";
-  CHECK(!absl::GetFlag(FLAGS_output_filename).empty())
+  ABSL_CHECK(!absl::GetFlag(FLAGS_output_filename).empty())
       << "Output file must be specified";
   // [END_EXCLUDE]
 }
@@ -110,36 +110,36 @@ void KmsEnvelopAeadCli(absl::string_view mode, absl::string_view kek_uri,
                        absl::string_view output_filename,
                        absl::string_view credentials,
                        absl::string_view associated_data) {
-  CHECK_OK(crypto::tink::AeadConfig::Register());
+  ABSL_CHECK_OK(crypto::tink::AeadConfig::Register());
   // Obtain a remote Aead that can use the KEK.
   absl::StatusOr<std::unique_ptr<GcpKmsClient>> gcp_kms_client =
       GcpKmsClient::New(kek_uri, credentials);
-  CHECK_OK(gcp_kms_client.status());
+  ABSL_CHECK_OK(gcp_kms_client.status());
   absl::StatusOr<std::unique_ptr<Aead>> remote_aead =
       (*gcp_kms_client)->GetAead(kek_uri);
-  CHECK_OK(remote_aead.status());
+  ABSL_CHECK_OK(remote_aead.status());
   // Define the DEK template.
   KeyTemplate dek_key_template = AeadKeyTemplates::Aes256Gcm();
   // Create a KmsEnvelopeAead instance.
   absl::StatusOr<std::unique_ptr<Aead>> aead =
       crypto::tink::KmsEnvelopeAead::New(dek_key_template,
                                          *std::move(remote_aead));
-  CHECK_OK(aead.status());
+  ABSL_CHECK_OK(aead.status());
 
   absl::StatusOr<std::string> input_file_content = ReadFile(input_filename);
-  CHECK_OK(input_file_content.status());
+  ABSL_CHECK_OK(input_file_content.status());
   if (mode == kEncrypt) {
     // Generate the ciphertext.
     absl::StatusOr<std::string> encrypt_result =
         (*aead)->Encrypt(*input_file_content, associated_data);
-    CHECK_OK(encrypt_result.status());
-    CHECK_OK(WriteToFile(encrypt_result.value(), output_filename));
+    ABSL_CHECK_OK(encrypt_result.status());
+    ABSL_CHECK_OK(WriteToFile(encrypt_result.value(), output_filename));
   } else {  // mode == kDecrypt.
     // Recover the plaintext.
     absl::StatusOr<std::string> decrypt_result =
         (*aead)->Decrypt(*input_file_content, associated_data);
-    CHECK_OK(decrypt_result.status());
-    CHECK_OK(WriteToFile(decrypt_result.value(), output_filename));
+    ABSL_CHECK_OK(decrypt_result.status());
+    ABSL_CHECK_OK(WriteToFile(decrypt_result.value(), output_filename));
   }
 }
 
@@ -157,14 +157,15 @@ int main(int argc, char** argv) {
   std::string credentials = absl::GetFlag(FLAGS_credentials);
   std::string associated_data = absl::GetFlag(FLAGS_associated_data);
 
-  LOG(INFO) << "Using kek-uri " << kek_uri << " with "
-            << (credentials.empty()
-                    ? "default credentials"
-                    : absl::StrCat("credentials file ", credentials))
-            << " to envelope " << mode << " file " << input_filename
-            << " with associated data '" << associated_data << "'." << '\n';
-  LOG(INFO) << "The resulting output will be written to " << output_filename
-            << '\n';
+  ABSL_LOG(INFO) << "Using kek-uri " << kek_uri << " with "
+                 << (credentials.empty()
+                         ? "default credentials"
+                         : absl::StrCat("credentials file ", credentials))
+                 << " to envelope " << mode << " file " << input_filename
+                 << " with associated data '" << associated_data << "'."
+                 << '\n';
+  ABSL_LOG(INFO) << "The resulting output will be written to "
+                 << output_filename << '\n';
 
   tink_cc_gcpkms_examples::KmsEnvelopAeadCli(mode, kek_uri, input_filename,
                                              output_filename, credentials,
