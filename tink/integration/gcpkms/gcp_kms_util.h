@@ -19,11 +19,16 @@
 
 #include "absl/status/status.h"
 #include "google/cloud/status.h"
+#include "re2/re2.h"
 
 namespace crypto {
 namespace tink {
 namespace integration {
 namespace gcpkms {
+
+static constexpr LazyRE2 kKmsKeyNameFormat = {
+    "projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+/"
+    "cryptoKeyVersions/.*"};
 
 absl::StatusCode ToAbslStatusCode(google::cloud::StatusCode code);
 

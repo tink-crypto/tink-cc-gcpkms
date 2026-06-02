@@ -13,19 +13,22 @@
 // limitations under the License.
 //
 ///////////////////////////////////////////////////////////////////////////////
+
 #include "tink/integration/gcpkms/gcp_kms_mac.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
 #include "absl/base/nullability.h"
-#include "absl/memory/memory.h"
+#include "absl/crc/crc32c.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
-#include "re2/re2.h"
+#include "google/cloud/status_or.h"
+#include "tink/integration/gcpkms/gcp_kms_util.h"
 #include "tink/mac.h"
 
 namespace crypto {
@@ -34,12 +37,9 @@ namespace integration {
 namespace gcpkms {
 namespace {
 
+using ::google::cloud::kms::v1::MacSignRequest;
+using ::google::cloud::kms::v1::MacSignResponse;
 using ::google::cloud::kms_v1::KeyManagementServiceClient;
-
-//  TODO: move it to the shared util library
-static constexpr LazyRE2 kKmsKeyNameFormat = {
-    "projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+/"
-    "cryptoKeyVersions/.*"};
 
 // GcpKmsMac is an implementation of Mac that forwards MAC computation requests
 // to Google Cloud KMS (https://cloud.google.com/kms/).
@@ -62,7 +62,39 @@ class GcpKmsMac : public Mac {
 
 absl::StatusOr<std::string> GcpKmsMac::ComputeMac(
     absl::string_view data) const {
-  return absl::UnimplementedError("Not implemented");
+  // Creates a MacSignRequest with keyname, data and the CRC32C of the data.
+  MacSignRequest request;
+  request.set_name(key_name_);
+  request.set_data(data);
+  request.mutable_data_crc32c()->set_value(
+      static_cast<uint32_t>(absl::ComputeCrc32c(data)));
+
+  google::cloud::StatusOr<MacSignResponse> response =
+      kms_client_->MacSign(request);
+  if (!response.ok()) {
+    return absl::Status(
+        ToAbslStatusCode(response.status().code()),
+        absl::StrCat("GCP KMS MacSign failed: ", response.status().message()));
+  }
+  // Checks if response.name matches key_name.
+  if (response->name() != key_name_) {
+    return absl::Status(
+        absl::StatusCode::kInternal,
+        "The key name in the response does not match the requested key name.");
+  }
+  if (!response->verified_data_crc32c()) {
+    return absl::Status(absl::StatusCode::kInternal,
+                        "Checking the input checksum failed.");
+  }
+  // Computes CRC32C over response.mac and compare with response.mac_crc32c.
+  uint32_t given_crc32c = static_cast<uint32_t>(response->mac_crc32c().value());
+  uint32_t computed_crc32c =
+      static_cast<uint32_t>(absl::ComputeCrc32c(response->mac()));
+  if (computed_crc32c != given_crc32c) {
+    return absl::Status(absl::StatusCode::kInternal, "MAC checksum mismatch.");
+  }
+
+  return response->mac();
 }
 
 absl::Status GcpKmsMac::VerifyMac(absl::string_view mac_value,
@@ -86,7 +118,7 @@ absl::StatusOr<std::unique_ptr<Mac>> CreateGcpKmsMac(
     return absl::Status(absl::StatusCode::kInvalidArgument,
                         "KMS client cannot be null.");
   }
-  return absl::make_unique<GcpKmsMac>(key_name, kms_client);
+  return std::make_unique<GcpKmsMac>(key_name, kms_client);
 }
 
 }  // namespace gcpkms

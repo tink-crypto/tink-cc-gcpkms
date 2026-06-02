@@ -196,18 +196,16 @@ cc_library(
     include_prefix = "tink/integration/gcpkms",
     visibility = ["//visibility:public"],
     deps = [
+        ":gcp_kms_util",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/crc:crc32c",
-        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
-        "@com_googlesource_code_re2//:re2",
         "@google_cloud_cpp//:common",
         "@google_cloud_cpp//:kms",
         "@tink_cc//tink:mac",
-        "@tink_cc//tink/util:status",
     ],
 )
 
@@ -216,6 +214,7 @@ cc_test(
     srcs = ["gcp_kms_mac_test.cc"],
     deps = [
         ":gcp_kms_mac",
+        "@com_google_absl//absl/crc:crc32c",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
@@ -234,6 +233,7 @@ cc_library(
     include_prefix = "tink/integration/gcpkms",
     deps = [
         "@com_google_absl//absl/status",
+        "@com_googlesource_code_re2//:re2",
         "@google_cloud_cpp//:common",
     ],
 )
