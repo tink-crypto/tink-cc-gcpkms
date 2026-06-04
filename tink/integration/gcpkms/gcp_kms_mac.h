@@ -32,7 +32,6 @@ namespace gcpkms {
 
 // Creates a new Mac object that is bound to the key specified in `key_name`,
 // and that uses the `kms_client` to communicate with Cloud KMS.
-//
 // Note that this MAC uses Cloud KMS as a crypto oracle for each operation.
 //
 // Valid values for `key_name` have the following format:

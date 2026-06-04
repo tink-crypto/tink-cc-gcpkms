@@ -40,7 +40,7 @@ namespace {
 namespace kmsV1 = ::google::cloud::kms::v1;
 
 using ::crypto::tink::test::DummyMac;
-using ::crypto::tink::test::IsOkAndHolds;
+using ::crypto::tink::test::IsOk;
 using ::crypto::tink::test::StatusIs;
 using ::google::cloud::Status;
 using ::google::cloud::StatusOr;
@@ -49,6 +49,7 @@ using ::google::cloud::kms_v1_mocks::MockKeyManagementServiceConnection;
 using ::testing::HasSubstr;
 
 constexpr absl::string_view kData = "data for mac";
+constexpr absl::string_view kWrongData = "wrong data for mac";
 constexpr absl::string_view kVersionName =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/1";
 constexpr absl::string_view kKeyName =
@@ -61,9 +62,28 @@ constexpr absl::string_view kKeyNameErrorCrc32cNotVerified =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/4";
 constexpr absl::string_view kKeyNameErrorWrongKeyName =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/5";
+constexpr absl::string_view kKeyNameErrorMacVerify =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/6";
+constexpr absl::string_view kKeyNameVerifyErrorDataCrc32cNotVerified =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/7";
+constexpr absl::string_view kKeyNameVerifyErrorMacCrc32cNotVerified =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/8";
+constexpr absl::string_view kKeyNameVerifyErrorSuccessIntegrity =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/9";
+constexpr absl::string_view kKeyNameVerifyErrorWrongKeyName =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/10";
 constexpr char kMacName[] = "gcp_kms_mac_test";
 
 std::string ComputeMacOrDie(const DummyMac& mac, absl::string_view data) {
+  auto mac_result = mac.ComputeMac(data);
+  if (!mac_result.ok()) {
+    ADD_FAILURE() << mac_result.status();
+    return "";
+  }
+  return *mac_result;
+}
+
+std::string ComputeKmsMacOrDie(const Mac& mac, absl::string_view data) {
   auto mac_result = mac.ComputeMac(data);
   if (!mac_result.ok()) {
     ADD_FAILURE() << mac_result.status();
@@ -124,6 +144,45 @@ class TestGcpKmsMac : public testing::Test {
           }
 
           return StatusOr<kmsV1::MacSignResponse>(response);
+        });
+  }
+
+  void ExpectMacVerify(const DummyMac& mac, int times) {
+    EXPECT_CALL(*mock_connection_, MacVerify)
+        .Times(times)
+        .WillRepeatedly([&](kmsV1::MacVerifyRequest const& request)
+                            -> StatusOr<kmsV1::MacVerifyResponse> {
+          if (request.name() == kKeyNameErrorMacVerify) {
+            return Status(google::cloud::StatusCode::kPermissionDenied,
+                          "Permission denied");
+          }
+
+          EXPECT_EQ(request.data_crc32c().value(),
+                    static_cast<uint32_t>(absl::ComputeCrc32c(request.data())));
+          EXPECT_EQ(request.mac_crc32c().value(),
+                    static_cast<uint32_t>(absl::ComputeCrc32c(request.mac())));
+
+          kmsV1::MacVerifyResponse response;
+          response.set_name(request.name());
+          response.set_verified_data_crc32c(true);
+          response.set_verified_mac_crc32c(true);
+          response.set_success(
+              mac.VerifyMac(request.mac(), request.data()).ok());
+          response.set_verified_success_integrity(response.success());
+          if (request.name() == kKeyNameVerifyErrorWrongKeyName) {
+            response.set_name(kVersionName);
+          }
+          if (request.name() == kKeyNameVerifyErrorDataCrc32cNotVerified) {
+            response.set_verified_data_crc32c(false);
+          }
+          if (request.name() == kKeyNameVerifyErrorMacCrc32cNotVerified) {
+            response.set_verified_mac_crc32c(false);
+          }
+          if (request.name() == kKeyNameVerifyErrorSuccessIntegrity) {
+            response.set_verified_success_integrity(!response.success());
+          }
+
+          return StatusOr<kmsV1::MacVerifyResponse>(response);
         });
   }
 
@@ -199,20 +258,119 @@ TEST_F(TestGcpKmsMac, WrongKeyNameInTheResponseFails) {
                        HasSubstr("does not match the requested key name")));
 }
 
-TEST_F(TestGcpKmsMac, ComputeMacSuccess) {
+TEST_F(TestGcpKmsMac, ComputeAndVerifyMacSuccess) {
   DummyMac mac(kMacName);
   ExpectMacSign(mac, /*times=*/1);
+  ExpectMacVerify(mac, /*times=*/1);
   std::unique_ptr<Mac> kms_mac =
       CreateGcpKmsMacOrDie(kVersionName, kms_client_);
   ASSERT_NE(kms_mac, nullptr);
-  std::string expected_mac = ComputeMacOrDie(mac, kData);
-  EXPECT_THAT(kms_mac->ComputeMac(kData), IsOkAndHolds(expected_mac));
+
+  std::string mac_value = ComputeKmsMacOrDie(*kms_mac, kData);
+  EXPECT_THAT(kms_mac->VerifyMac(mac_value, kData), IsOk());
 }
 
 TEST_F(TestGcpKmsMac, KeyNameWithoutCryptoKeyVersionFails) {
   EXPECT_THAT(CreateGcpKmsMac(kKeyName, kms_client_).status(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("does not match")));
+}
+
+TEST_F(TestGcpKmsMac, VerifyMacFailsOnWrongData) {
+  DummyMac mac(kMacName);
+  ExpectMacSign(mac, /*times=*/1);
+  ExpectMacVerify(mac, /*times=*/1);
+  std::unique_ptr<Mac> kms_mac =
+      CreateGcpKmsMacOrDie(kVersionName, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+
+  std::string mac_value = ComputeKmsMacOrDie(*kms_mac, kData);
+  EXPECT_THAT(kms_mac->VerifyMac(mac_value, kWrongData),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("MAC verification failed")));
+}
+
+TEST_F(TestGcpKmsMac, VerifyMacFailsOnWrongMac) {
+  DummyMac mac(kMacName);
+  ExpectMacVerify(mac, /*times=*/1);
+  std::unique_ptr<Mac> kms_mac =
+      CreateGcpKmsMacOrDie(kVersionName, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+  EXPECT_THAT(kms_mac->VerifyMac("wrong mac", kData),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("MAC verification failed")));
+}
+
+TEST_F(TestGcpKmsMac, MacVerifyFails) {
+  DummyMac mac(kMacName);
+  ExpectMacSign(mac, /*times=*/1);
+  ExpectMacVerify(mac, /*times=*/1);
+  std::unique_ptr<Mac> kms_mac =
+      CreateGcpKmsMacOrDie(kKeyNameErrorMacVerify, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+
+  std::string mac_value = ComputeKmsMacOrDie(*kms_mac, kData);
+  EXPECT_THAT(kms_mac->VerifyMac(mac_value, kData),
+              StatusIs(absl::StatusCode::kPermissionDenied,
+                       HasSubstr("GCP KMS MacVerify failed")));
+}
+
+TEST_F(TestGcpKmsMac, VerifyMacWrongInputDataCrc32cFails) {
+  DummyMac mac(kMacName);
+  ExpectMacSign(mac, /*times=*/1);
+  ExpectMacVerify(mac, /*times=*/1);
+  std::unique_ptr<Mac> kms_mac = CreateGcpKmsMacOrDie(
+      kKeyNameVerifyErrorDataCrc32cNotVerified, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+
+  std::string mac_value = ComputeKmsMacOrDie(*kms_mac, kData);
+  EXPECT_THAT(kms_mac->VerifyMac(mac_value, kData),
+              StatusIs(absl::StatusCode::kInternal,
+                       HasSubstr("Checking the input data checksum failed.")));
+}
+
+TEST_F(TestGcpKmsMac, VerifyMacWrongMacCrc32cFails) {
+  DummyMac mac(kMacName);
+  ExpectMacSign(mac, /*times=*/1);
+  ExpectMacVerify(mac, /*times=*/1);
+  std::unique_ptr<Mac> kms_mac = CreateGcpKmsMacOrDie(
+      kKeyNameVerifyErrorMacCrc32cNotVerified, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+
+  std::string mac_value = ComputeKmsMacOrDie(*kms_mac, kData);
+  EXPECT_THAT(kms_mac->VerifyMac(mac_value, kData),
+              StatusIs(absl::StatusCode::kInternal,
+                       HasSubstr("Checking the MAC checksum failed.")));
+}
+
+TEST_F(TestGcpKmsMac, VerifyMacWrongSuccessIntegrityFails) {
+  DummyMac mac(kMacName);
+  ExpectMacSign(mac, /*times=*/1);
+  ExpectMacVerify(mac, /*times=*/1);
+  std::unique_ptr<Mac> kms_mac =
+      CreateGcpKmsMacOrDie(kKeyNameVerifyErrorSuccessIntegrity, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+
+  std::string mac_value = ComputeKmsMacOrDie(*kms_mac, kData);
+  EXPECT_THAT(
+      kms_mac->VerifyMac(mac_value, kData),
+      StatusIs(
+          absl::StatusCode::kInternal,
+          HasSubstr("Checking the verification result integrity failed.")));
+}
+
+TEST_F(TestGcpKmsMac, VerifyMacWrongKeyNameInTheResponseFails) {
+  DummyMac mac(kMacName);
+  ExpectMacSign(mac, /*times=*/1);
+  ExpectMacVerify(mac, /*times=*/1);
+  std::unique_ptr<Mac> kms_mac =
+      CreateGcpKmsMacOrDie(kKeyNameVerifyErrorWrongKeyName, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+
+  std::string mac_value = ComputeKmsMacOrDie(*kms_mac, kData);
+  EXPECT_THAT(kms_mac->VerifyMac(mac_value, kData),
+              StatusIs(absl::StatusCode::kInternal,
+                       HasSubstr("does not match the requested key name")));
 }
 
 }  // namespace

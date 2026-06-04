@@ -39,6 +39,8 @@ namespace {
 
 using ::google::cloud::kms::v1::MacSignRequest;
 using ::google::cloud::kms::v1::MacSignResponse;
+using ::google::cloud::kms::v1::MacVerifyRequest;
+using ::google::cloud::kms::v1::MacVerifyResponse;
 using ::google::cloud::kms_v1::KeyManagementServiceClient;
 
 // GcpKmsMac is an implementation of Mac that forwards MAC computation requests
@@ -99,7 +101,53 @@ absl::StatusOr<std::string> GcpKmsMac::ComputeMac(
 
 absl::Status GcpKmsMac::VerifyMac(absl::string_view mac_value,
                                   absl::string_view data) const {
-  return absl::UnimplementedError("Not implemented");
+  // Creates a MacVerifyRequest with keyname, data, mac_value and their CRC32C.
+  MacVerifyRequest request;
+  request.set_name(key_name_);
+  request.set_data(data);
+  // Computes CRC32C over data.
+  request.mutable_data_crc32c()->set_value(
+      static_cast<uint32_t>(absl::ComputeCrc32c(data)));
+  request.set_mac(mac_value);
+  request.mutable_mac_crc32c()->set_value(
+      static_cast<uint32_t>(absl::ComputeCrc32c(mac_value)));
+
+  // Executes the KMS rpc with this MacVerifyRequest and receives the response.
+  google::cloud::StatusOr<MacVerifyResponse> response =
+      kms_client_->MacVerify(request);
+  if (!response.ok()) {
+    return absl::Status(ToAbslStatusCode(response.status().code()),
+                        absl::StrCat("GCP KMS MacVerify failed: ",
+                                     response.status().message()));
+  }
+  // Checks if response.name matches key_name.
+  if (response->name() != key_name_) {
+    return absl::Status(
+        absl::StatusCode::kInternal,
+        "The key name in the response does not match the requested key name.");
+  }
+  // Checks response.verified_data_crc32c.
+  if (!response->verified_data_crc32c()) {
+    return absl::Status(absl::StatusCode::kInternal,
+                        "Checking the input data checksum failed.");
+  }
+  // Checks response.verified_mac_crc32c
+  if (!response->verified_mac_crc32c()) {
+    return absl::Status(absl::StatusCode::kInternal,
+                        "Checking the MAC checksum failed.");
+  }
+  if (!response->success()) {
+    return absl::Status(absl::StatusCode::kInvalidArgument,
+                        "MAC verification failed.");
+  }
+  // Checks if response.verified_success_integrity matches response.success.
+  // This field is designed to protect the integrity of the success boolean.
+  if (response->verified_success_integrity() != response->success()) {
+    return absl::Status(absl::StatusCode::kInternal,
+                        "Checking the verification result integrity failed.");
+  }
+
+  return absl::OkStatus();
 }
 
 }  // namespace
