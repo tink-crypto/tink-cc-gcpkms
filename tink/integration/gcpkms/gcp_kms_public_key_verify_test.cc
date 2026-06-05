@@ -677,7 +677,7 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetPublicKeyCrcPemMismatchFails) {
       CreateGcpKmsPublicKeyVerify(kKeyNameCrcPemError, kms_client_);
   EXPECT_THAT(kms_verifier.status(),
               StatusIs(absl::StatusCode::kInternal,
-                       HasSubstr("Public key checksum mismatch")));
+                       HasSubstr("GCP KMS GetPublicKey checksum mismatch")));
 }
 
 TEST_F(TestGcpKmsPublicKeyVerify,

@@ -132,6 +132,7 @@ class TestGcpKmsPublicKeySign : public testing::Test {
         .WillRepeatedly([&](kmsV1::GetPublicKeyRequest const& request)
                             -> StatusOr<kmsV1::PublicKey> {
           kmsV1::PublicKey response;
+          response.set_name(request.name());
           // All use PEM, unless otherwise specified (and overwritten)
           response.set_public_key_format(kmsV1::PublicKey::PEM);
           response.mutable_public_key()->set_data("public key data");
@@ -205,6 +206,7 @@ class TestGcpKmsPublicKeySign : public testing::Test {
                 google::cloud::StatusCode::kInvalidArgument,
                 "Only NIST_PQC format is supported for PQC algorithms.");
           }
+          response.set_name(request.name());
           response.set_algorithm(
               kmsV1::CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S);
           response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
@@ -256,7 +258,7 @@ TEST_F(TestGcpKmsPublicKeySign, ChecksumMismatchFailsGetPublicKey) {
       kKeyNameErrorChecksumMismatchGetPublicKey, kms_client_);
   EXPECT_THAT(kmsSigner.status(),
               StatusIs(absl::StatusCode::kInternal,
-                       HasSubstr("Checksum Verification Failed")));
+                       HasSubstr("GCP KMS GetPublicKey checksum mismatch")));
 }
 
 TEST_F(TestGcpKmsPublicKeySign, ChecksumMismatchFailsGetPublicKeyPqc) {
@@ -265,7 +267,7 @@ TEST_F(TestGcpKmsPublicKeySign, ChecksumMismatchFailsGetPublicKeyPqc) {
       kKeyNameErrorChecksumMismatchGetPublicKeyPqc, kms_client_);
   EXPECT_THAT(kmsSigner.status(),
               StatusIs(absl::StatusCode::kInternal,
-                       HasSubstr("Checksum Verification Failed")));
+                       HasSubstr("GCP KMS GetPublicKey checksum mismatch")));
 }
 
 TEST_F(TestGcpKmsPublicKeySign, UnsupportedAlgorithmFails) {

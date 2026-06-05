@@ -21,18 +21,16 @@
 #include <string>
 
 #include "absl/base/nullability.h"
-#include "absl/crc/crc32c.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/status_or.h"
 #include "openssl/base.h"
 #include "openssl/digest.h"
-#include "re2/re2.h"
+#include "tink/integration/gcpkms/internal/gcp_kms_util.h"
 #include "tink/public_key_sign.h"
 
 namespace crypto {
@@ -45,16 +43,12 @@ using ::google::cloud::kms::v1::AsymmetricSignRequest;
 using ::google::cloud::kms::v1::AsymmetricSignResponse;
 using ::google::cloud::kms::v1::CryptoKeyVersion;
 using ::google::cloud::kms::v1::Digest;
-using ::google::cloud::kms::v1::GetPublicKeyRequest;
 using ::google::cloud::kms::v1::ProtectionLevel;
 using ::google::cloud::kms::v1::PublicKey;
 using ::google::cloud::kms_v1::KeyManagementServiceClient;
 
 // Maximum size of the data that can be signed.
 static constexpr int kMaxSignDataSize = 64 * 1024;
-static constexpr LazyRE2 kKmsKeyNameFormat = {
-    "projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+/"
-    "cryptoKeyVersions/.*"};
 
 // Returns whether the given algorithm is supported for signing through Tink.
 bool IsSupported(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
@@ -74,17 +68,6 @@ bool IsSupported(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_2048:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_3072:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_4096:
-    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
-    case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
-      return true;
-    default:
-      return false;
-  }
-}
-
-// Returns whether the given algorithm is a PQC algorithm.
-bool IsPqcAlgorithm(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
-  switch (algorithm) {
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
       return true;
@@ -295,63 +278,22 @@ absl::StatusOr<std::string> GcpKmsPublicKeySign::Sign(
   return response->signature();
 }
 
-// Tries to get the public key from KMS. Requires that the Public Key Format is
-// explicitly set in the request.
-absl::StatusOr<PublicKey> TryGetPublicKey(
-    absl_nonnull std::shared_ptr<KeyManagementServiceClient> kms_client,
-    const GetPublicKeyRequest& request) {
-  if (request.public_key_format() == PublicKey::PUBLIC_KEY_FORMAT_UNSPECIFIED) {
-    return absl::InvalidArgumentError("Public Key Format must be specified");
-  }
-  google::cloud::StatusOr<PublicKey> response =
-      kms_client->GetPublicKey(request);
-  if (!response.ok()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "GCP KMS GetPublicKey failed: ", response.status().message()));
-  }
-  absl::crc32c_t given_crc32c(response->public_key().crc32c_checksum().value());
-  absl::crc32c_t computed_crc32c(
-      absl::ComputeCrc32c(response->public_key().data()));
-  if (computed_crc32c != given_crc32c) {
-    return absl::InternalError(
-        absl::StrCat("GCP KMS GetPublicKey Checksum Verification Failed: ",
-                     response.status().message()));
-  }
-  return *response;
-}
 }  // namespace
 
 absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
     absl::string_view key_name,
     absl_nonnull std::shared_ptr<KeyManagementServiceClient> kms_client) {
-  if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
-    return absl::Status(
-        absl::StatusCode::kInvalidArgument,
-        absl::StrCat(key_name, " does not match the KMS key name format: ",
-                     kKmsKeyNameFormat->pattern()));
+  absl::Status key_name_validation_status =
+      internal::ValidateResourceName(key_name);
+  if (!key_name_validation_status.ok()) {
+    return key_name_validation_status;
   }
   if (kms_client == nullptr) {
     return absl::Status(absl::StatusCode::kInvalidArgument,
                         "KMS client cannot be null.");
   }
-  // Retrieve the related public key from KMS, that contains information on
-  // how to prepare the later AsymmetricSign requests.
-  GetPublicKeyRequest request;
-  request.set_name(key_name);
-  // By setting the PEM field explicitly, we are able to directly use
-  // the PublicKey field in the response, and don't need to use the
-  // pem and pem_crc32c fields separately.
-  request.set_public_key_format(PublicKey::PEM);
-  absl::StatusOr<PublicKey> response = TryGetPublicKey(kms_client, request);
-  // Set public_key_format for PQC keys.
-  // While some algorithms do support PEM format, we use raw bytes for now.
-  if ((!response.ok() &&
-       absl::StrContains(response.status().message(),
-                         "Only NIST_PQC format is supported")) ||
-      (response.ok() && IsPqcAlgorithm(response->algorithm()))) {
-    request.set_public_key_format(PublicKey::NIST_PQC);
-    response = TryGetPublicKey(kms_client, request);
-  }
+  absl::StatusOr<PublicKey> response =
+      internal::FetchKmsPublicKey(key_name, kms_client);
   if (!response.ok()) {
     return response.status();
   }

@@ -22,17 +22,14 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
-#include "absl/crc/crc32c.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
-#include "google/cloud/status_or.h"
-#include "re2/re2.h"
 #include "tink/cleartext_keyset_handle.h"
+#include "tink/integration/gcpkms/internal/gcp_kms_util.h"
 #include "tink/key.h"
 #include "tink/keyset_handle.h"
 #include "tink/keyset_reader.h"
@@ -56,14 +53,9 @@ namespace gcpkms {
 namespace {
 
 using ::google::cloud::kms::v1::CryptoKeyVersion;
-using ::google::cloud::kms::v1::GetPublicKeyRequest;
 using ::google::cloud::kms::v1::PublicKey;
 using ::google::cloud::kms_v1::KeyManagementServiceClient;
 using ::google::crypto::tink::HashType;
-
-static constexpr LazyRE2 kKmsKeyNameFormat = {
-    "projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+/"
-    "cryptoKeyVersions/.*"};
 
 // Returns whether or not the algorithm is currently supported for verification
 // through Tink. Not all Cloud KMS algorithms are supported.
@@ -80,18 +72,6 @@ bool IsValidAlgorithm(
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512:
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
     case CryptoKeyVersion::EC_SIGN_P384_SHA384:
-    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
-    case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
-      return true;
-    default:
-      return false;
-  }
-}
-
-// Returns whether or not the Cloud KMS algorithm is PQC.
-bool IsPqcAlgorithm(
-    const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
-  switch (algorithm) {
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
       return true;
@@ -331,55 +311,19 @@ absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPqcKey(
 absl::StatusOr<PublicKey> GetGcpKmsPublicKey(
     absl::string_view key_name,
     absl_nonnull std::shared_ptr<KeyManagementServiceClient> kms_client) {
-  if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
-    return absl::Status(
-        absl::StatusCode::kInvalidArgument,
-        absl::StrCat(key_name, " does not match the KMS key name format: ",
-                     kKmsKeyNameFormat->pattern()));
+  absl::Status key_name_validation_status =
+      internal::ValidateResourceName(key_name);
+  if (!key_name_validation_status.ok()) {
+    return key_name_validation_status;
   }
   if (kms_client == nullptr) {
     return absl::Status(absl::StatusCode::kInvalidArgument,
                         "KMS client cannot be null.");
   }
-
-  // Retrieve the related public key from KMS.
-  GetPublicKeyRequest request;
-  request.set_name(key_name);
-  // Set format to PEM explictly for convenience, so that we use the public_key
-  // response field regardless of which Cloud KMS algorithm is being used.
-  request.set_public_key_format(PublicKey::PEM);
-  google::cloud::StatusOr<PublicKey> response =
-      kms_client->GetPublicKey(request);
-  // Catch PQC keys missing public_key_format field and send another request.
-  // While some algorithms do support PEM format, we use raw bytes for now.
-  if ((!response.ok() &&
-       absl::StrContains(response.status().message(),
-                         "Only NIST_PQC format is supported")) ||
-      (response.ok() && IsPqcAlgorithm(response->algorithm()))) {
-    request.set_public_key_format(PublicKey::NIST_PQC);
-    response = kms_client->GetPublicKey(request);
-  }
+  absl::StatusOr<PublicKey> response =
+      internal::FetchKmsPublicKey(key_name, kms_client);
   if (!response.ok()) {
-    return absl::Status(absl::StatusCode::kInvalidArgument,
-                        absl::StrCat("GCP KMS GetPublicKey failed: ",
-                                     response.status().message()));
-  }
-
-  // Perform integrity checks.
-  if (response->name() != key_name) {
-    return absl::Status(absl::StatusCode::kInternal,
-                        absl::StrCat("The key name in the response does not "
-                                     "match the requested key name.",
-                                     response.status().message()));
-  }
-  absl::crc32c_t given_crc32c = static_cast<absl::crc32c_t>(
-      response->public_key().crc32c_checksum().value());
-  absl::crc32c_t computed_crc32c =
-      absl::ComputeCrc32c(response->public_key().data());
-  if (computed_crc32c != given_crc32c) {
-    return absl::Status(absl::StatusCode::kInternal,
-                        absl::StrCat("Public key checksum mismatch.",
-                                     response.status().message()));
+    return response.status();
   }
 
   if (!IsValidAlgorithm(response->algorithm())) {
@@ -465,7 +409,7 @@ GetInternalVerifierForAlgorithm(
     CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
     absl::string_view public_key) {
   absl::StatusOr<std::unique_ptr<KeysetHandle>> keyset_handle;
-  if (IsPqcAlgorithm(algorithm)) {
+  if (internal::IsPqcAlgorithm(algorithm)) {
     keyset_handle = GetTinkKeySetHandleFromPqcKey(algorithm, public_key);
   } else {
     keyset_handle = GetTinkKeySetHandleFromPemKey(algorithm, public_key);
@@ -511,7 +455,7 @@ CreateSignaturePublicKey(
     return register_status;
   }
   absl::StatusOr<std::unique_ptr<KeysetHandle>> tink_keyset_handle;
-  if (IsPqcAlgorithm(gcp_kms_public_key->algorithm())) {
+  if (internal::IsPqcAlgorithm(gcp_kms_public_key->algorithm())) {
     tink_keyset_handle =
         GetTinkKeySetHandleFromPqcKey(gcp_kms_public_key->algorithm(),
                                       gcp_kms_public_key->public_key().data());

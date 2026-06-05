@@ -27,10 +27,10 @@ cc_library(
     include_prefix = "tink/integration/gcpkms",
     visibility = ["//visibility:public"],
     deps = [
+        "//tink/integration/gcpkms/internal:gcp_kms_util",
         "@boringssl//:crypto",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/status",
-        "@com_googlesource_code_re2//:re2",
         "@google_cloud_cpp//:kms",
         "@tink_cc//tink:public_key_sign",
     ],
@@ -43,10 +43,9 @@ cc_library(
     include_prefix = "tink/integration/gcpkms",
     visibility = ["//visibility:public"],
     deps = [
-        "@boringssl//:crypto",
+        "//tink/integration/gcpkms/internal:gcp_kms_util",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/status",
-        "@com_googlesource_code_re2//:re2",
         "@google_cloud_cpp//:kms",
         "@tink_cc//proto:common_cc_proto",
         "@tink_cc//tink:cleartext_keyset_handle",
