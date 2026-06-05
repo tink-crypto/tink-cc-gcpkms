@@ -28,7 +28,7 @@
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/status_or.h"
-#include "tink/integration/gcpkms/gcp_kms_util.h"
+#include "tink/integration/gcpkms/internal/gcp_kms_util.h"
 #include "tink/mac.h"
 
 namespace crypto {
@@ -75,7 +75,7 @@ absl::StatusOr<std::string> GcpKmsMac::ComputeMac(
       kms_client_->MacSign(request);
   if (!response.ok()) {
     return absl::Status(
-        ToAbslStatusCode(response.status().code()),
+        internal::ToAbslStatusCode(response.status().code()),
         absl::StrCat("GCP KMS MacSign failed: ", response.status().message()));
   }
   // Checks if response.name matches key_name.
@@ -116,7 +116,7 @@ absl::Status GcpKmsMac::VerifyMac(absl::string_view mac_value,
   google::cloud::StatusOr<MacVerifyResponse> response =
       kms_client_->MacVerify(request);
   if (!response.ok()) {
-    return absl::Status(ToAbslStatusCode(response.status().code()),
+    return absl::Status(internal::ToAbslStatusCode(response.status().code()),
                         absl::StrCat("GCP KMS MacVerify failed: ",
                                      response.status().message()));
   }
@@ -155,12 +155,10 @@ absl::Status GcpKmsMac::VerifyMac(absl::string_view mac_value,
 absl::StatusOr<std::unique_ptr<Mac>> CreateGcpKmsMac(
     absl::string_view key_name,
     absl_nonnull std::shared_ptr<KeyManagementServiceClient> kms_client) {
-  if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
-    return absl::Status(
-        absl::StatusCode::kInvalidArgument,
-        absl::StrCat(key_name,
-                     " does not match the KMS key version name format: ",
-                     kKmsKeyNameFormat->pattern()));
+  absl::Status key_name_validation_status =
+      internal::ValidateResourceName(key_name);
+  if (!key_name_validation_status.ok()) {
+    return key_name_validation_status;
   }
   if (kms_client == nullptr) {
     return absl::Status(absl::StatusCode::kInvalidArgument,

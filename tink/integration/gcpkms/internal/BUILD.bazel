@@ -3,6 +3,31 @@ package(default_visibility = ["//:__subpackages__"])
 licenses(["notice"])
 
 cc_library(
+    name = "gcp_kms_util",
+    srcs = ["gcp_kms_util.cc"],
+    hdrs = ["gcp_kms_util.h"],
+    include_prefix = "tink/integration/gcpkms",
+    deps = [
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_googlesource_code_re2//:re2",
+        "@google_cloud_cpp//:common",
+    ],
+)
+
+cc_test(
+    name = "gcp_kms_util_test",
+    srcs = ["gcp_kms_util_test.cc"],
+    deps = [
+        ":gcp_kms_util",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
+        "@google_cloud_cpp//:common",
+    ],
+)
+
+cc_library(
     name = "test_file_util",
     testonly = 1,
     srcs = ["test_file_util.cc"],

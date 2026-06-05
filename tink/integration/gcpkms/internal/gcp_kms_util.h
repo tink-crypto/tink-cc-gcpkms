@@ -14,27 +14,33 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef TINK_INTEGRATION_GCPKMS_GCP_KMS_UTIL_H_
-#define TINK_INTEGRATION_GCPKMS_GCP_KMS_UTIL_H_
+#ifndef TINK_INTEGRATION_GCPKMS_INTERNAL_GCP_KMS_UTIL_H_
+#define TINK_INTEGRATION_GCPKMS_INTERNAL_GCP_KMS_UTIL_H_
 
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "google/cloud/status.h"
-#include "re2/re2.h"
 
 namespace crypto {
 namespace tink {
 namespace integration {
 namespace gcpkms {
+namespace internal {
 
-static constexpr LazyRE2 kKmsKeyNameFormat = {
-    "projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+/"
-    "cryptoKeyVersions/.*"};
-
+// Converts a Google Cloud StatusCode to an Abseil StatusCode.
 absl::StatusCode ToAbslStatusCode(google::cloud::StatusCode code);
 
+// Validates the format of the given KMS key name.
+//
+// Valid values for `key_name` have the following format:
+//    projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*.
+// See https://cloud.google.com/kms/docs/object-hierarchy for more info.
+absl::Status ValidateResourceName(absl::string_view key_name);
+
+}  // namespace internal
 }  // namespace gcpkms
 }  // namespace integration
 }  // namespace tink
 }  // namespace crypto
 
-#endif  // TINK_INTEGRATION_GCPKMS_GCP_KMS_UTIL_H_
+#endif  // TINK_INTEGRATION_GCPKMS_INTERNAL_GCP_KMS_UTIL_H_

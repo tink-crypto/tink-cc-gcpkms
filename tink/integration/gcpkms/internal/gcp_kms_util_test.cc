@@ -14,7 +14,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "tink/integration/gcpkms/gcp_kms_util.h"
+#include "tink/integration/gcpkms/internal/gcp_kms_util.h"
 
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
@@ -24,6 +24,7 @@ namespace crypto {
 namespace tink {
 namespace integration {
 namespace gcpkms {
+namespace internal {
 namespace {
 
 using ::google::cloud::StatusCode;
@@ -63,6 +64,7 @@ TEST(GcpKmsStatusUtilTest, ConvertsGoogleCloudStatusCodeToAbslStatusCode) {
 }
 
 }  // namespace
+}  // namespace internal
 }  // namespace gcpkms
 }  // namespace integration
 }  // namespace tink

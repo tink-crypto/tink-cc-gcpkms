@@ -14,15 +14,23 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "tink/integration/gcpkms/gcp_kms_util.h"
+#include "tink/integration/gcpkms/internal/gcp_kms_util.h"
 
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "google/cloud/status.h"
+#include "re2/re2.h"
 
 namespace crypto {
 namespace tink {
 namespace integration {
 namespace gcpkms {
+namespace internal {
+
+static constexpr LazyRE2 kKmsKeyNameFormat = {
+    "projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+/"
+    "cryptoKeyVersions/.*"};
 
 absl::StatusCode ToAbslStatusCode(google::cloud::StatusCode code) {
   switch (code) {
@@ -65,6 +73,16 @@ absl::StatusCode ToAbslStatusCode(google::cloud::StatusCode code) {
   }
 }
 
+absl::Status ValidateResourceName(absl::string_view key_name) {
+  if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        key_name, " does not match the KMS key version name format: ",
+        kKmsKeyNameFormat->pattern()));
+  }
+  return absl::OkStatus();
+}
+
+}  // namespace internal
 }  // namespace gcpkms
 }  // namespace integration
 }  // namespace tink
