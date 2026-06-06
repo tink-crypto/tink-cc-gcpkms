@@ -604,8 +604,8 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
             response.set_protection_level(kmsV1::ProtectionLevel::HSM);
             response.mutable_public_key()->set_data(kSecp256k1PublicKey);
           } else if (request.name() == kKeyNameErrorGetPublicKey) {
-            return Status(google::cloud::StatusCode::kInternal,
-                          "Internal error");
+            return Status(google::cloud::StatusCode::kPermissionDenied,
+                          "Permission denied");
           }
 
           response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
@@ -658,7 +658,7 @@ TEST_F(TestGcpKmsPublicKeyVerify, GetPublicKeyFails) {
   auto kms_verifier =
       CreateGcpKmsPublicKeyVerify(kKeyNameErrorGetPublicKey, kms_client_);
   EXPECT_THAT(kms_verifier.status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
+              StatusIs(absl::StatusCode::kPermissionDenied,
                        HasSubstr("GCP KMS GetPublicKey failed")));
 }
 

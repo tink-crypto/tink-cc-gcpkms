@@ -248,7 +248,7 @@ absl::StatusOr<std::string> GcpKmsPublicKeySign::Sign(
   google::cloud::StatusOr<AsymmetricSignResponse> response =
       kms_client_->AsymmetricSign(*request);
   if (!response.ok()) {
-    return absl::Status(absl::StatusCode::kInternal,
+    return absl::Status(internal::ToAbslStatusCode(response.status().code()),
                         absl::StrCat("GCP KMS AsymmetricSign failed: ",
                                      response.status().message()));
   }

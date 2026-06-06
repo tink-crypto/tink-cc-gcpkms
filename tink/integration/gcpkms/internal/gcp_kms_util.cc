@@ -123,8 +123,9 @@ absl::StatusOr<PublicKey> FetchKmsPublicKey(
     response = kms_client->GetPublicKey(request);
   }
   if (!response.ok()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "GCP KMS GetPublicKey failed: ", response.status().message()));
+    return absl::Status(ToAbslStatusCode(response.status().code()),
+                        absl::StrCat("GCP KMS GetPublicKey failed: ",
+                                     response.status().message()));
   }
   if (response->name() != key_name) {
     return absl::InternalError(

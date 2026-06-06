@@ -102,10 +102,10 @@ TEST_F(FetchKmsPublicKeyTest, RpcFails) {
   EXPECT_CALL(*mock_connection_, GetPublicKey)
       .WillOnce(
           [](kmsV1::GetPublicKeyRequest const&) -> StatusOr<kmsV1::PublicKey> {
-            return Status(StatusCode::kInternal, "RPC failed");
+            return Status(StatusCode::kPermissionDenied, "RPC failed");
           });
   EXPECT_THAT(FetchKmsPublicKey(kKeyName, kms_client_).status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
+              StatusIs(absl::StatusCode::kPermissionDenied,
                        HasSubstr("GCP KMS GetPublicKey failed")));
 }
 
@@ -179,10 +179,10 @@ TEST_F(FetchKmsPublicKeyTest, NistPqcRetryFails) {
           return Status(StatusCode::kInvalidArgument,
                         "Only NIST_PQC format is supported");
         }
-        return Status(StatusCode::kInternal, "NIST_PQC also failed");
+        return Status(StatusCode::kUnavailable, "NIST_PQC also failed");
       });
   EXPECT_THAT(FetchKmsPublicKey(kKeyName, kms_client_).status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
+              StatusIs(absl::StatusCode::kUnavailable,
                        HasSubstr("GCP KMS GetPublicKey failed")));
 }
 

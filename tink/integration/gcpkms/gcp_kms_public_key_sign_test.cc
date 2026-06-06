@@ -90,8 +90,8 @@ class TestGcpKmsPublicKeySign : public testing::Test {
         .WillRepeatedly([&](kmsV1::AsymmetricSignRequest const& request)
                             -> StatusOr<kmsV1::AsymmetricSignResponse> {
           if (request.name() == kKeyNameErrorAsymmetricSign) {
-            return Status(google::cloud::StatusCode::kInternal,
-                          "Internal error");
+            return Status(google::cloud::StatusCode::kPermissionDenied,
+                          "Permission denied");
           }
 
           // Prepare response based on the given data/digest.
@@ -159,8 +159,8 @@ class TestGcpKmsPublicKeySign : public testing::Test {
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
           } else if (request.name() == kKeyNameErrorGetPublicKey) {
-            return Status(google::cloud::StatusCode::kInternal,
-                          "Internal error");
+            return Status(google::cloud::StatusCode::kPermissionDenied,
+                          "Permission denied");
           } else if (request.name() == kKeyNameErrorUnsupportedAlgorithm) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_DECRYPT_OAEP_2048_SHA256);
@@ -248,7 +248,7 @@ TEST_F(TestGcpKmsPublicKeySign, GetPublicKeyFails) {
   auto kmsSigner =
       CreateGcpKmsPublicKeySign(kKeyNameErrorGetPublicKey, kms_client_);
   EXPECT_THAT(kmsSigner.status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
+              StatusIs(absl::StatusCode::kPermissionDenied,
                        HasSubstr("GCP KMS GetPublicKey failed")));
 }
 
@@ -286,7 +286,7 @@ TEST_F(TestGcpKmsPublicKeySign, AsymmetricSignFails) {
       CreateGcpKmsPublicKeySign(kKeyNameErrorAsymmetricSign, kms_client_);
   EXPECT_THAT(kmsSigner.status(), IsOk());
   EXPECT_THAT((*kmsSigner)->Sign(kData).status(),
-              StatusIs(absl::StatusCode::kInternal,
+              StatusIs(absl::StatusCode::kPermissionDenied,
                        HasSubstr("GCP KMS AsymmetricSign failed")));
 }
 
