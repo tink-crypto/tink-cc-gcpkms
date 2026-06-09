@@ -220,6 +220,7 @@ cc_test(
         "@google_cloud_cpp//:common",
         "@google_cloud_cpp//:kms",
         "@google_cloud_cpp//:kms_mocks",
+        "@tink_cc//tink:mac",
         "@tink_cc//tink/util:test_matchers",
         "@tink_cc//tink/util:test_util",
     ],

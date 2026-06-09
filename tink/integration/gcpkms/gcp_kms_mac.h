@@ -30,6 +30,12 @@ namespace tink {
 namespace integration {
 namespace gcpkms {
 
+// Maximum size of the data that can be used for MAC computation/verification.
+static constexpr int kMaxMacDataSize = 64 * 1024;
+
+// Maximum size of the MAC that can be verified.
+static constexpr int kMaxMacValueSize = 64;
+
 // Creates a new Mac object that is bound to the key specified in `key_name`,
 // and that uses the `kms_client` to communicate with Cloud KMS.
 // Note that this MAC uses Cloud KMS as a crypto oracle for each operation.

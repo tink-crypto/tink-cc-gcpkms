@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -28,6 +29,8 @@
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/kms/v1/mocks/mock_key_management_connection.h"
 #include "google/cloud/status.h"
+#include "google/cloud/status_or.h"
+#include "tink/mac.h"
 #include "tink/util/test_matchers.h"
 #include "tink/util/test_util.h"
 
@@ -268,6 +271,36 @@ TEST_F(TestGcpKmsMac, ComputeAndVerifyMacSuccess) {
 
   std::string mac_value = ComputeKmsMacOrDie(*kms_mac, kData);
   EXPECT_THAT(kms_mac->VerifyMac(mac_value, kData), IsOk());
+}
+
+TEST_F(TestGcpKmsMac, ComputeMacLargeInputDataFails) {
+  std::string large_data(kMaxMacDataSize + 1, 'A');
+  std::unique_ptr<Mac> kms_mac =
+      CreateGcpKmsMacOrDie(kVersionName, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+  EXPECT_THAT(
+      kms_mac->ComputeMac(large_data).status(),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("larger than")));
+}
+
+TEST_F(TestGcpKmsMac, VerifyMacLargeInputDataFails) {
+  std::string large_data(kMaxMacDataSize + 1, 'A');
+  std::unique_ptr<Mac> kms_mac =
+      CreateGcpKmsMacOrDie(kVersionName, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+  EXPECT_THAT(
+      kms_mac->VerifyMac("some mac", large_data),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("larger than")));
+}
+
+TEST_F(TestGcpKmsMac, VerifyMacLargeInputMacFails) {
+  std::string large_mac(kMaxMacValueSize + 1, 'A');
+  std::unique_ptr<Mac> kms_mac =
+      CreateGcpKmsMacOrDie(kVersionName, kms_client_);
+  ASSERT_NE(kms_mac, nullptr);
+  EXPECT_THAT(
+      kms_mac->VerifyMac(large_mac, kData),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("larger than")));
 }
 
 TEST_F(TestGcpKmsMac, KeyNameWithoutCryptoKeyVersionFails) {

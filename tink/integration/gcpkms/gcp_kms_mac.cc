@@ -64,6 +64,13 @@ class GcpKmsMac : public Mac {
 
 absl::StatusOr<std::string> GcpKmsMac::ComputeMac(
     absl::string_view data) const {
+  if (data.size() > kMaxMacDataSize) {
+    return absl::Status(
+        absl::StatusCode::kInvalidArgument,
+        absl::StrCat("The input data (", data.size(),
+                     " bytes) is larger than the allowed limit (",
+                     kMaxMacDataSize, " bytes)."));
+  }
   // Creates a MacSignRequest with keyname, data and the CRC32C of the data.
   MacSignRequest request;
   request.set_name(key_name_);
@@ -101,6 +108,20 @@ absl::StatusOr<std::string> GcpKmsMac::ComputeMac(
 
 absl::Status GcpKmsMac::VerifyMac(absl::string_view mac_value,
                                   absl::string_view data) const {
+  if (data.size() > kMaxMacDataSize) {
+    return absl::Status(
+        absl::StatusCode::kInvalidArgument,
+        absl::StrCat("The input data (", data.size(),
+                     " bytes) is larger than the allowed limit (",
+                     kMaxMacDataSize, " bytes)."));
+  }
+  if (mac_value.size() > kMaxMacValueSize) {
+    return absl::Status(
+        absl::StatusCode::kInvalidArgument,
+        absl::StrCat("The input MAC (", mac_value.size(),
+                     " bytes) is larger than the allowed limit (",
+                     kMaxMacValueSize, " bytes)."));
+  }
   // Creates a MacVerifyRequest with keyname, data, mac_value and their CRC32C.
   MacVerifyRequest request;
   request.set_name(key_name_);
