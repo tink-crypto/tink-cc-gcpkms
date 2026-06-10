@@ -132,9 +132,9 @@ class GcpSignaturePublicKeyParameters : public SignatureParameters {
   explicit GcpSignaturePublicKeyParameters(
       absl::string_view public_key,
       CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm)
-      : public_key_(public_key), algorithm_(algorithm) {}
+      : public_key_(std::string(public_key)), algorithm_(algorithm) {}
 
-  absl::string_view public_key_;
+  std::string public_key_;
   CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm_;
 };
 
