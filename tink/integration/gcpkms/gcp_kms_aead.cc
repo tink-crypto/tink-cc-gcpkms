@@ -16,12 +16,14 @@
 
 #include "tink/integration/gcpkms/gcp_kms_aead.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
 #include "google/cloud/kms/v1/service.grpc.pb.h"
 #include "grpcpp/client_context.h"
 #include "grpcpp/support/status.h"
+#include "absl/crc/crc32c.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
@@ -85,6 +87,13 @@ absl::StatusOr<std::string> GcpKmsAead::Encrypt(
   req.set_name(key_name_);
   req.set_plaintext(plaintext);
   req.set_additional_authenticated_data(associated_data);
+  // Set request-side CRC32C so the KMS server can verify request integrity
+  // and confirm receipt via the verified_*_crc32c response fields. See
+  // https://cloud.google.com/kms/docs/data-integrity-guidelines.
+  req.mutable_plaintext_crc32c()->set_value(
+      static_cast<int64_t>(absl::ComputeCrc32c(plaintext)));
+  req.mutable_additional_authenticated_data_crc32c()->set_value(
+      static_cast<int64_t>(absl::ComputeCrc32c(associated_data)));
 
   if (kms_client_) {
     auto response = kms_client_->Encrypt(req);
@@ -92,6 +101,35 @@ absl::StatusOr<std::string> GcpKmsAead::Encrypt(
       return absl::Status(absl::StatusCode::kInvalidArgument,
                           absl::StrCat("GCP KMS encryption failed: ",
                                        response.status().message()));
+    }
+    if (!response->verified_plaintext_crc32c()) {
+      return absl::Status(
+          absl::StatusCode::kInternal,
+          absl::StrCat(
+              "KMS request for ", key_name_,
+              " is missing the checksum field plaintext_crc32c, and other "
+              "information may be missing from the response. Please retry a "
+              "limited number of times in case the error is transient."));
+    }
+    if (!response->verified_additional_authenticated_data_crc32c()) {
+      return absl::Status(
+          absl::StatusCode::kInternal,
+          absl::StrCat(
+              "KMS request for ", key_name_,
+              " is missing the checksum field "
+              "additional_authenticated_data_crc32c, and other information "
+              "may be missing from the response. Please retry a limited "
+              "number of times in case the error is transient."));
+    }
+    if (response->ciphertext_crc32c().value() !=
+        static_cast<int64_t>(absl::ComputeCrc32c(response->ciphertext()))) {
+      return absl::Status(
+          absl::StatusCode::kInternal,
+          absl::StrCat(
+              "KMS response corrupted in transit for ", key_name_,
+              ": the checksum in field ciphertext_crc32c did not match the "
+              "data in field ciphertext. Please retry in case this is a "
+              "transient error."));
     }
     return response->ciphertext();
   }
@@ -107,6 +145,35 @@ absl::StatusOr<std::string> GcpKmsAead::Encrypt(
     return absl::Status(
         static_cast<absl::StatusCode>(status.error_code()),
         absl::StrCat("GCP KMS encryption failed: ", status.error_message()));
+  }
+  if (!resp.verified_plaintext_crc32c()) {
+    return absl::Status(
+        absl::StatusCode::kInternal,
+        absl::StrCat(
+            "KMS request for ", key_name_,
+            " is missing the checksum field plaintext_crc32c, and other "
+            "information may be missing from the response. Please retry a "
+            "limited number of times in case the error is transient."));
+  }
+  if (!resp.verified_additional_authenticated_data_crc32c()) {
+    return absl::Status(
+        absl::StatusCode::kInternal,
+        absl::StrCat(
+            "KMS request for ", key_name_,
+            " is missing the checksum field "
+            "additional_authenticated_data_crc32c, and other information may "
+            "be missing from the response. Please retry a limited number of "
+            "times in case the error is transient."));
+  }
+  if (resp.ciphertext_crc32c().value() !=
+      static_cast<int64_t>(absl::ComputeCrc32c(resp.ciphertext()))) {
+    return absl::Status(
+        absl::StatusCode::kInternal,
+        absl::StrCat(
+            "KMS response corrupted in transit for ", key_name_,
+            ": the checksum in field ciphertext_crc32c did not match the "
+            "data in field ciphertext. Please retry in case this is a "
+            "transient error."));
   }
   return resp.ciphertext();
 }
