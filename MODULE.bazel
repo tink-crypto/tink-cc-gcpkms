@@ -41,7 +41,7 @@ bazel_dep(
 )
 bazel_dep(
     name = "googleapis",
-    version = "0.0.0-20251003-2193a2bf",
+    version = "0.0.0-20260525-ef19b7b7",
     repo_name = "com_google_googleapis",
 )
 bazel_dep(
