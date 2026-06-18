@@ -197,6 +197,9 @@ absl::StatusOr<AsymmetricSignRequest> BuildAsymmetricSignRequest(
     case Digest::kSha512:
       request.mutable_digest()->set_sha512(*digest_string);
       break;
+    case Digest::kExternalMu:
+      request.mutable_digest()->set_external_mu(*digest_string);
+      break;
     default:
       return absl::Status(absl::StatusCode::kInternal,
                           absl::StrCat("Invalid DigestCase: ", *digest_case));
