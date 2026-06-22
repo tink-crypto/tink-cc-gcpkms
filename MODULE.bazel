@@ -58,7 +58,7 @@ single_version_override(
 
 bazel_dep(
     name = "tink_cc",
-    version = "2.4.0",
+    version = "2.7.0",
 )
 bazel_dep(
     name = "google_cloud_cpp",

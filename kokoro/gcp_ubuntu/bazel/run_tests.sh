@@ -62,12 +62,16 @@ if [[ "${IS_KOKORO}" == "true" ]]; then
 fi
 readonly MANUAL_TARGETS
 
-./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
-  ./kokoro/testutils/run_bazel_tests.sh . "${MANUAL_TARGETS[@]}"
+# 1. Define build and test options as COMMA-separated strings (No internal quotes)
+BAZEL_BUILD_OPTS="--cxxopt=-std=c++17,--host_cxxopt=-std=c++17"
+BAZEL_TEST_OPTS="--cxxopt=-std=c++17,--host_cxxopt=-std=c++17"
 
+# 2. Pass flags BEFORE the positional arguments ('.')
 ./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
-  ./kokoro/testutils/run_bazel_tests.sh -b "--noenable_bzlmod" \
-  -t "--noenable_bzlmod" . "${MANUAL_TARGETS[@]}"
+  ./kokoro/testutils/run_bazel_tests.sh \
+  -b "${BAZEL_BUILD_OPTS}" \
+  -t "${BAZEL_TEST_OPTS}" \
+  . "${MANUAL_TARGETS[@]}"
 
 # Test examples.
 EXAMPLES_MANUAL_TARGETS=()
@@ -76,8 +80,9 @@ if [[ "${IS_KOKORO}" == "true" ]]; then
 fi
 readonly EXAMPLES_MANUAL_TARGETS
 
+# 3. Pass flags BEFORE the positional arguments ('examples')
 ./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
-  ./kokoro/testutils/run_bazel_tests.sh examples "${EXAMPLES_MANUAL_TARGETS[@]}"
-./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
-  ./kokoro/testutils/run_bazel_tests.sh  -b "--noenable_bzlmod" \
-  -t "--noenable_bzlmod" examples "${EXAMPLES_MANUAL_TARGETS[@]}"
+  ./kokoro/testutils/run_bazel_tests.sh \
+  -b "${BAZEL_BUILD_OPTS}" \
+  -t "${BAZEL_TEST_OPTS}" \
+  examples "${EXAMPLES_MANUAL_TARGETS[@]}"
