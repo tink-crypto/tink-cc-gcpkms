@@ -26,6 +26,7 @@ http_file(
     urls = ["https://pki.goog/roots.pem"],
 )
 
+bazel_dep(name = "rules_shell", version = "0.8.0")
 bazel_dep(
     name = "rules_cc",
     version = "0.2.9",
