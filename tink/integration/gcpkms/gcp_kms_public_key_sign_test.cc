@@ -76,6 +76,28 @@ constexpr absl::string_view kKeyNameErrorChecksumMismatchGetPublicKeyPqc =
 constexpr absl::string_view kKeyNameMlDsaPemSupported =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/12";
 
+std::string SignOrDie(const DummyPublicKeySign& signer,
+                      absl::string_view data) {
+  absl::StatusOr<std::string> signature = signer.Sign(data);
+  if (!signature.ok()) {
+    ADD_FAILURE() << signature.status();
+    return "";
+  }
+  return *signature;
+}
+
+std::unique_ptr<PublicKeySign> CreateGcpKmsPublicKeySignOrDie(
+    absl::string_view key_name,
+    std::shared_ptr<KeyManagementServiceClient> kms_client) {
+  absl::StatusOr<std::unique_ptr<PublicKeySign>> kms_signer =
+      CreateGcpKmsPublicKeySign(key_name, std::move(kms_client));
+  if (!kms_signer.ok()) {
+    ADD_FAILURE() << kms_signer.status();
+    return nullptr;
+  }
+  return std::move(*kms_signer);
+}
+
 class TestGcpKmsPublicKeySign : public testing::Test {
  public:
   TestGcpKmsPublicKeySign()
@@ -84,11 +106,18 @@ class TestGcpKmsPublicKeySign : public testing::Test {
         kms_client_(
             std::make_shared<KeyManagementServiceClient>(mock_connection_)) {}
 
-  void ExpectSign(const DummyPublicKeySign& signer, int times) {
+  // If `captured_request` is non-null, the last request seen by the mock is
+  // copied into it so the caller can assert on the request contents.
+  void ExpectSign(const DummyPublicKeySign& signer, int times,
+                  kmsV1::AsymmetricSignRequest* captured_request = nullptr) {
     EXPECT_CALL(*mock_connection_, AsymmetricSign)
         .Times(times)
-        .WillRepeatedly([&](kmsV1::AsymmetricSignRequest const& request)
+        .WillRepeatedly([&, captured_request](
+                            kmsV1::AsymmetricSignRequest const& request)
                             -> StatusOr<kmsV1::AsymmetricSignResponse> {
+          if (captured_request != nullptr) {
+            *captured_request = request;
+          }
           if (request.name() == kKeyNameErrorAsymmetricSign) {
             return Status(google::cloud::StatusCode::kPermissionDenied,
                           "Permission denied");
@@ -99,10 +128,10 @@ class TestGcpKmsPublicKeySign : public testing::Test {
           response.set_name(request.name());
           if (request.has_digest()) {
             response.set_verified_digest_crc32c(true);
-            response.set_signature(*signer.Sign(kDigest));
+            response.set_signature(SignOrDie(signer, kDigest));
           } else {
             response.set_verified_data_crc32c(true);
-            response.set_signature(*signer.Sign(kData));
+            response.set_signature(SignOrDie(signer, kData));
           }
           response.mutable_signature_crc32c()->set_value(
               static_cast<uint32_t>(absl::ComputeCrc32c(response.signature())));
@@ -282,10 +311,10 @@ TEST_F(TestGcpKmsPublicKeySign, AsymmetricSignFails) {
   DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameErrorAsymmetricSign);
   ExpectGetPublicKey(1);
   ExpectSign(signer, /*times*/ 1);
-  auto kmsSigner =
-      CreateGcpKmsPublicKeySign(kKeyNameErrorAsymmetricSign, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
-  EXPECT_THAT((*kmsSigner)->Sign(kData).status(),
+  std::unique_ptr<PublicKeySign> kmsSigner =
+      CreateGcpKmsPublicKeySignOrDie(kKeyNameErrorAsymmetricSign, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  EXPECT_THAT(kmsSigner->Sign(kData).status(),
               StatusIs(absl::StatusCode::kPermissionDenied,
                        HasSubstr("GCP KMS AsymmetricSign failed")));
 }
@@ -295,10 +324,10 @@ TEST_F(TestGcpKmsPublicKeySign, WrongInputCrc32cFails) {
       DummyPublicKeySign(kKeyNameErrorCrc32cNotVerified);
   ExpectGetPublicKey(1);
   ExpectSign(signer, /*times*/ 1);
-  auto kmsSigner =
-      CreateGcpKmsPublicKeySign(kKeyNameErrorCrc32cNotVerified, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
-  EXPECT_THAT((*kmsSigner)->Sign(kData).status(),
+  std::unique_ptr<PublicKeySign> kmsSigner = CreateGcpKmsPublicKeySignOrDie(
+      kKeyNameErrorCrc32cNotVerified, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  EXPECT_THAT(kmsSigner->Sign(kData).status(),
               StatusIs(absl::StatusCode::kInternal,
                        HasSubstr("Checking the input checksum failed.")));
 }
@@ -307,9 +336,10 @@ TEST_F(TestGcpKmsPublicKeySign, WrongSignatureCrc32cFails) {
   DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameErrorCrc32c);
   ExpectGetPublicKey(1);
   ExpectSign(signer, /*times*/ 1);
-  auto kmsSigner = CreateGcpKmsPublicKeySign(kKeyNameErrorCrc32c, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
-  EXPECT_THAT((*kmsSigner)->Sign(kData).status(),
+  std::unique_ptr<PublicKeySign> kmsSigner =
+      CreateGcpKmsPublicKeySignOrDie(kKeyNameErrorCrc32c, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  EXPECT_THAT(kmsSigner->Sign(kData).status(),
               StatusIs(absl::StatusCode::kInternal,
                        HasSubstr("Signature checksum mismatch")));
 }
@@ -317,11 +347,11 @@ TEST_F(TestGcpKmsPublicKeySign, WrongSignatureCrc32cFails) {
 TEST_F(TestGcpKmsPublicKeySign, LargeInputDataFails) {
   ExpectGetPublicKey(1);
   std::string large_data(64 * 1024 + 1, 'A');
-  auto kmsSigner =
-      CreateGcpKmsPublicKeySign(kKeyNameRequiresData1, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
+  std::unique_ptr<PublicKeySign> kmsSigner =
+      CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresData1, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
   EXPECT_THAT(
-      (*kmsSigner)->Sign(large_data).status(),
+      kmsSigner->Sign(large_data).status(),
       StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("larger than")));
 }
 
@@ -329,42 +359,53 @@ TEST_F(TestGcpKmsPublicKeySign, WrongKeyNameInTheResponseFails) {
   DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameErrorWrongKeyName);
   ExpectGetPublicKey(1);
   ExpectSign(signer, /*times*/ 1);
-  auto kmsSigner =
-      CreateGcpKmsPublicKeySign(kKeyNameErrorWrongKeyName, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
-  EXPECT_THAT((*kmsSigner)->Sign(kData).status(),
+  std::unique_ptr<PublicKeySign> kmsSigner =
+      CreateGcpKmsPublicKeySignOrDie(kKeyNameErrorWrongKeyName, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  EXPECT_THAT(kmsSigner->Sign(kData).status(),
               StatusIs(absl::StatusCode::kInternal,
                        HasSubstr("does not match the requested key name")));
 }
 
-TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDataOnAlgorithmSuccess) {
+// Data-mode algorithms sign the raw data: the request must carry `data` (with
+// its checksum) and no digest.
+TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDataRequestCorrect) {
   DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresData1);
   ExpectGetPublicKey(1);
-  ExpectSign(signer, /*times*/ 1);
-  auto kmsSigner =
-      CreateGcpKmsPublicKeySign(kKeyNameRequiresData1, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
-  EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kData)));
+  kmsV1::AsymmetricSignRequest request;
+  ExpectSign(signer, /*times*/ 1, &request);
+  std::unique_ptr<PublicKeySign> kmsSigner =
+      CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresData1, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  EXPECT_THAT(kmsSigner->Sign(kData), IsOkAndHolds(SignOrDie(signer, kData)));
+
+  EXPECT_EQ(request.name(), kKeyNameRequiresData1);
+  EXPECT_EQ(request.data(), kData);
+  EXPECT_TRUE(request.has_data_crc32c());
+  EXPECT_EQ(request.data_crc32c().value(),
+            static_cast<uint32_t>(absl::ComputeCrc32c(kData)));
+  EXPECT_FALSE(request.has_digest());
+  EXPECT_FALSE(request.has_digest_crc32c());
 }
 
 TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDataOnProtectionLevelSuccess) {
   DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresData2);
   ExpectGetPublicKey(1);
   ExpectSign(signer, /*times*/ 1);
-  auto kmsSigner =
-      CreateGcpKmsPublicKeySign(kKeyNameRequiresData2, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
-  EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kData)));
+  std::unique_ptr<PublicKeySign> kmsSigner =
+      CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresData2, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  EXPECT_THAT(kmsSigner->Sign(kData), IsOkAndHolds(SignOrDie(signer, kData)));
 }
 
 TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDigestSuccess) {
   DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresDigest);
   ExpectGetPublicKey(1);
   ExpectSign(signer, /*times*/ 1);
-  auto kmsSigner =
-      CreateGcpKmsPublicKeySign(kKeyNameRequiresDigest, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
-  EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kDigest)));
+  std::unique_ptr<PublicKeySign> kmsSigner =
+      CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresDigest, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  EXPECT_THAT(kmsSigner->Sign(kData), IsOkAndHolds(SignOrDie(signer, kDigest)));
 }
 
 TEST_F(TestGcpKmsPublicKeySign, PublicKeySignSlhDsaAlgorithmSuccess) {
@@ -372,10 +413,10 @@ TEST_F(TestGcpKmsPublicKeySign, PublicKeySignSlhDsaAlgorithmSuccess) {
   // SLH-DSA does not support PEM format.
   ExpectPqcGetPublicKey(/*times*/ 2);
   ExpectSign(signer, /*times*/ 1);
-  auto kmsSigner =
-      CreateGcpKmsPublicKeySign(kKeyNameRequiresData1, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
-  EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kData)));
+  std::unique_ptr<PublicKeySign> kmsSigner =
+      CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresData1, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  EXPECT_THAT(kmsSigner->Sign(kData), IsOkAndHolds(SignOrDie(signer, kData)));
 }
 
 TEST_F(TestGcpKmsPublicKeySign, PublicKeySignMlDsaAlgorithmSuccess) {
