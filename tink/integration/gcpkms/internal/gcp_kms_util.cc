@@ -88,8 +88,11 @@ absl::StatusCode ToAbslStatusCode(google::cloud::StatusCode code) {
 
 bool IsPqcAlgorithm(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
   switch (algorithm) {
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44:
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
+    case CryptoKeyVersion::PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256:
       return true;
     default:
       return false;

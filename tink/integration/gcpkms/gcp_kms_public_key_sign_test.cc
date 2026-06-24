@@ -19,15 +19,18 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/crc/crc32c.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/kms/v1/mocks/mock_key_management_connection.h"
 #include "google/cloud/status.h"
+#include "google/cloud/status_or.h"
 #include "tink/util/test_matchers.h"
 #include "tink/util/test_util.h"
 
@@ -40,7 +43,6 @@ namespace {
 namespace kmsV1 = ::google::cloud::kms::v1;
 
 using ::crypto::tink::test::DummyPublicKeySign;
-using ::crypto::tink::test::IsOk;
 using ::crypto::tink::test::IsOkAndHolds;
 using ::crypto::tink::test::StatusIs;
 using ::google::cloud::Status;
@@ -51,6 +53,15 @@ using ::testing::HasSubstr;
 
 constexpr absl::string_view kData = "data for signing";
 constexpr absl::string_view kDigest = "digest for signing";
+// SHA-256 digest of kData. Pre-hash signature algorithms (e.g. HASH_SLH_DSA)
+// send this digest to Cloud KMS instead of the raw data.
+constexpr absl::string_view kSha256DigestOfKData(
+    "\xbd\xb2\x45\x2d\xfd\xc4\x32\xf6"
+    "\x75\xfe\x3b\x38\x3b\x03\xc9\x34"
+    "\x3e\x61\x8b\x25\x7b\xe1\xc1\xfc"
+    "\x9b\xe1\xc9\xda\x14\x76\xb0\x71",
+    32);
+// TODO(b/514763989): Reorganize these later.
 constexpr absl::string_view kKeyNameRequiresData1 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/1";
 constexpr absl::string_view kKeyNameRequiresData2 =
@@ -73,8 +84,21 @@ constexpr absl::string_view kKeyNameErrorChecksumMismatchGetPublicKey =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/10";
 constexpr absl::string_view kKeyNameErrorChecksumMismatchGetPublicKeyPqc =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/11";
-constexpr absl::string_view kKeyNameMlDsaPemSupported =
+constexpr absl::string_view kKeyNameMlDsa65 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/12";
+constexpr absl::string_view kKeyNameMlDsa44 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/13";
+constexpr absl::string_view kKeyNameMlDsa87 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/14";
+constexpr absl::string_view kKeyNameHashSlhDsa =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/15";
+
+// Identifies a key version under test and how many GetPublicKey calls it needs
+// during key fetching.
+struct RequestParam {
+  absl::string_view key_name;
+  int get_public_key_times;
+};
 
 std::string SignOrDie(const DummyPublicKeySign& signer,
                       absl::string_view data) {
@@ -214,11 +238,32 @@ class TestGcpKmsPublicKeySign : public testing::Test {
             response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
             response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
                 1);
-          } else if (request.name() == kKeyNameMlDsaPemSupported) {
+          } else if (request.name() == kKeyNameMlDsa44) {
+            response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_44);
+            if (request.public_key_format() == kmsV1::PublicKey::NIST_PQC) {
+              response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
+            }
+          } else if (request.name() == kKeyNameMlDsa65) {
             response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
             if (request.public_key_format() == kmsV1::PublicKey::NIST_PQC) {
               response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
             }
+          } else if (request.name() == kKeyNameMlDsa87) {
+            response.set_algorithm(kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_87);
+            if (request.public_key_format() == kmsV1::PublicKey::NIST_PQC) {
+              response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
+            }
+          } else if (request.name() == kKeyNameHashSlhDsa) {
+            // SLH-DSA, including the pre-hash variant, does not support PEM.
+            if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
+              return Status(
+                  google::cloud::StatusCode::kInvalidArgument,
+                  "Only NIST_PQC format is supported for PQC algorithms.");
+            }
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
           }
           return StatusOr<kmsV1::PublicKey>(response);
         });
@@ -369,17 +414,22 @@ TEST_F(TestGcpKmsPublicKeySign, WrongKeyNameInTheResponseFails) {
 
 // Data-mode algorithms sign the raw data: the request must carry `data` (with
 // its checksum) and no digest.
-TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDataRequestCorrect) {
-  DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresData1);
-  ExpectGetPublicKey(1);
+class TestGcpKmsPublicKeySignData
+    : public TestGcpKmsPublicKeySign,
+      public testing::WithParamInterface<RequestParam> {};
+
+TEST_P(TestGcpKmsPublicKeySignData, PublicKeySignDataRequestCorrect) {
+  const RequestParam& param = GetParam();
+  DummyPublicKeySign signer = DummyPublicKeySign(param.key_name);
+  ExpectGetPublicKey(param.get_public_key_times);
   kmsV1::AsymmetricSignRequest request;
   ExpectSign(signer, /*times*/ 1, &request);
   std::unique_ptr<PublicKeySign> kmsSigner =
-      CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresData1, kms_client_);
+      CreateGcpKmsPublicKeySignOrDie(param.key_name, kms_client_);
   ASSERT_NE(kmsSigner, nullptr);
   EXPECT_THAT(kmsSigner->Sign(kData), IsOkAndHolds(SignOrDie(signer, kData)));
 
-  EXPECT_EQ(request.name(), kKeyNameRequiresData1);
+  EXPECT_EQ(request.name(), param.key_name);
   EXPECT_EQ(request.data(), kData);
   EXPECT_TRUE(request.has_data_crc32c());
   EXPECT_EQ(request.data_crc32c().value(),
@@ -388,25 +438,50 @@ TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDataRequestCorrect) {
   EXPECT_FALSE(request.has_digest_crc32c());
 }
 
-TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDataOnProtectionLevelSuccess) {
-  DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresData2);
-  ExpectGetPublicKey(1);
-  ExpectSign(signer, /*times*/ 1);
-  std::unique_ptr<PublicKeySign> kmsSigner =
-      CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresData2, kms_client_);
-  ASSERT_NE(kmsSigner, nullptr);
-  EXPECT_THAT(kmsSigner->Sign(kData), IsOkAndHolds(SignOrDie(signer, kData)));
-}
+INSTANTIATE_TEST_SUITE_P(
+    DataAlgorithms, TestGcpKmsPublicKeySignData,
+    testing::Values(
+        RequestParam{kKeyNameRequiresData1, /*get_public_key_times=*/1},
+        RequestParam{kKeyNameRequiresData2, /*get_public_key_times=*/1},
+        RequestParam{kKeyNameMlDsa44, /*get_public_key_times=*/2},
+        RequestParam{kKeyNameMlDsa65, /*get_public_key_times=*/2},
+        RequestParam{kKeyNameMlDsa87, /*get_public_key_times=*/2}));
 
-TEST_F(TestGcpKmsPublicKeySign, PublicKeySignDigestSuccess) {
-  DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresDigest);
-  ExpectGetPublicKey(1);
-  ExpectSign(signer, /*times*/ 1);
+// Digest-mode algorithms sign a digest of the data: the request must carry the
+// correct SHA-256 digest (with its checksum) and no data.
+class TestGcpKmsPublicKeySignDigest
+    : public TestGcpKmsPublicKeySign,
+      public testing::WithParamInterface<RequestParam> {};
+
+TEST_P(TestGcpKmsPublicKeySignDigest, PublicKeySignDigestRequestCorrect) {
+  const RequestParam& param = GetParam();
+  DummyPublicKeySign signer = DummyPublicKeySign(param.key_name);
+  ExpectGetPublicKey(param.get_public_key_times);
+  kmsV1::AsymmetricSignRequest request;
+  ExpectSign(signer, /*times*/ 1, &request);
   std::unique_ptr<PublicKeySign> kmsSigner =
-      CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresDigest, kms_client_);
+      CreateGcpKmsPublicKeySignOrDie(param.key_name, kms_client_);
   ASSERT_NE(kmsSigner, nullptr);
   EXPECT_THAT(kmsSigner->Sign(kData), IsOkAndHolds(SignOrDie(signer, kDigest)));
+
+  EXPECT_EQ(request.name(), param.key_name);
+  EXPECT_TRUE(request.data().empty());
+  EXPECT_FALSE(request.has_data_crc32c());
+  EXPECT_TRUE(request.has_digest());
+  EXPECT_EQ(request.digest().digest_case(), kmsV1::Digest::kSha256);
+  EXPECT_EQ(request.digest().sha256(), kSha256DigestOfKData);
+  EXPECT_TRUE(request.has_digest_crc32c());
+  EXPECT_EQ(request.digest_crc32c().value(),
+            static_cast<uint32_t>(absl::ComputeCrc32c(kSha256DigestOfKData)));
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    DigestAlgorithms, TestGcpKmsPublicKeySignDigest,
+    testing::Values(RequestParam{kKeyNameRequiresDigest,
+                                 /*get_public_key_times=*/1},
+                    RequestParam{kKeyNameHashSlhDsa,
+                                 /*get_public_key_times=*/2}));
+
 
 TEST_F(TestGcpKmsPublicKeySign, PublicKeySignSlhDsaAlgorithmSuccess) {
   DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresData1);
@@ -417,18 +492,6 @@ TEST_F(TestGcpKmsPublicKeySign, PublicKeySignSlhDsaAlgorithmSuccess) {
       CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresData1, kms_client_);
   ASSERT_NE(kmsSigner, nullptr);
   EXPECT_THAT(kmsSigner->Sign(kData), IsOkAndHolds(SignOrDie(signer, kData)));
-}
-
-TEST_F(TestGcpKmsPublicKeySign, PublicKeySignMlDsaAlgorithmSuccess) {
-  DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresData1);
-  // ML-DSA does support PEM format, but we need raw bytes anyways, so we still
-  // send two GetPublicKey requests.
-  ExpectGetPublicKey(/*times*/ 2);
-  ExpectSign(signer, /*times*/ 1);
-  auto kmsSigner =
-      CreateGcpKmsPublicKeySign(kKeyNameMlDsaPemSupported, kms_client_);
-  EXPECT_THAT(kmsSigner.status(), IsOk());
-  EXPECT_THAT((*kmsSigner)->Sign(kData), IsOkAndHolds(*signer.Sign(kData)));
 }
 
 }  // namespace

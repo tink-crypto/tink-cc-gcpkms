@@ -68,8 +68,11 @@ bool IsSupported(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_2048:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_3072:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_4096:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44:
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
+    case CryptoKeyVersion::PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256:
       return true;
     default:
       return false;
@@ -87,7 +90,9 @@ bool RequiresDataForSign(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_2048:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_3072:
     case CryptoKeyVersion::RSA_SIGN_RAW_PKCS1_4096:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44:
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
       return true;
     default:
@@ -118,6 +123,7 @@ absl::StatusOr<Digest::DigestCase> GetDigestFromAlgorithm(
     case CryptoKeyVersion::RSA_SIGN_PKCS1_2048_SHA256:
     case CryptoKeyVersion::RSA_SIGN_PKCS1_3072_SHA256:
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA256:
+    case CryptoKeyVersion::PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256:
       return Digest::DigestCase::kSha256;
     case CryptoKeyVersion::EC_SIGN_P384_SHA384:
       return Digest::DigestCase::kSha384;
