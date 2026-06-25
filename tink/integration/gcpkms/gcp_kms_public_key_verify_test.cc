@@ -221,7 +221,7 @@ GGYPgxL+zvqtZL+01ury1ASUw28414i4LU7OUO3C1oQc/tR4eETXYZ++qSsS6XmT7Br8k7h1VpQ=
 )";
 
 // Generated the private key with Cloud KMS and exported public key.
-constexpr absl::string_view kMlDsaPublicKey = R"(
+constexpr absl::string_view kMlDsa65PublicKey = R"(
 abjXrycN1wWlu3j2h0aNpeUKoZ44pbopLr5MJ7tIf0aDVH/+1M3n1LgyjoBZqi0Vs7an4V64Yb4bHISx
 refVdCOVKlOoMf56TM3eGfGo1C+c+8Bu3uNzAJKtIq1VONOi+vrMCjeEbFG1EqONbhIraj8m4XzWExQ/
 iNeB+mHd5tvgUvKtRR369xSYtW28HbrWE3kCjS07mLOpilm7EgAS+02rkUhI9i9/FqAGhhj456A4Mg4/
@@ -257,7 +257,7 @@ URv3Pku6EattpAFLW5dhwB9BWlioNqhpHpQsgR2PJdVulmnHe2KDWeu1IelO6KFOBpoJhrZxX83ZvtHw
 fNUvTg/rhd8Tov9bfXylOMzhP6hfdtqZug4zT5/nX2w=)";
 
 // Generated with Cloud KMS through AsymmetricSign.
-constexpr absl::string_view kMlDsaSignature = R"(
+constexpr absl::string_view kMlDsa65Signature = R"(
 qgPJrxId74UztifeXPAVA16O/Yrt1KeyKDaHGYqqqlgr+Zeo80UAlnaurAWRsZSfC+NjQ6NCQvrSJQqj
 wCa59Bu5Z47FhBu4kfF8uS8mBxcX+hhGrPDt/KT4J7D0KtaBWBw0e1N+l5rAQ9bEBw62thQ+WfGqHOsr
 4oP2nSFL6JxhrolUogLd/vOzrJOO8pKdpeQ14LoGJFUVXhTHfdXycyEpdHWbnxhU79FDWKJ9tWs/ZN1B
@@ -314,6 +314,203 @@ vtLYz0Vo4IYXwUYI9FYXHKCYhg7dvx2T0UA/fe6QpgJTBHt3mgcYssTZI5f9NDeMJknQDASHtqcuBjnw
 ptyZ0Lg8wrasS3HVLjqg8xlv5ftOMZH+5urKx9Nj1GBpeSCj8j4Ynkhrg7mWTjo7VSDlNj29MmcEz4tC
 kmPEFdzxuC40VHaLuL/A5SMlar3IBBArBCNHi6m4w+r0Ol1h2N7n7wgNFiiEs7gAAAAAAAAAAAAAAAAA
 AAAACA0QGSAn)";
+
+// Generated the private key with Cloud KMS and exported public key.
+constexpr absl::string_view kMlDsa44PublicKey = R"(
+7fgDItYnOZpZOMclgf+Ex03S3MUIbgwUukjKnDL1q3Qbc+61vdsl4tcjhil+Pk8H3pQrwH0ZB8i+Mjg2
+jpxWnETbaoeotkwScgS0rp5avH2NibCHwEu5M9Q4Cvsj9dZorJnfInwJtbsX3m3ZKsZCpzf5hwkd08jf
+dbi0h660pxpDoGFtsH1i75J/46I1XI14/7K5C8x1JuaMo0ycPXOLaxV/WN7Vn0vixZETuntw+4QTZpKx
+cRLP31Msls4v8WPCwgOVyw60ZN3XzSJ4v1XH+aY1D+MYmMQTXE9eaHADAFe2O+l3WJy1l3QmKGAgUOqD
+djnvj7RvULmeq/UxRFnU5EloRunwBj5bD7lbDRRar+OmtHDRtYhscPFF26nKlnYL3TLwYRzrirD/MM7X
+onooYMCMhXymwcR41lWWJrGdBGRgS+0gXB6nMvL/maKtJG1X2pEiey5L0DmyEALB/ajTmnKlNEGMxCSf
+wmSZzC/p+WWBfgHxVpq8W5Cp/oMuWmhDYMNezv8d1H3MQaDBPvMiFJrshH/R5m7eKYgI6qFBVTdPxhGm
+eq33gLqahnil2dquuyplVFGzgBHwv/Bpq6QH7ArLO6Hp+7WPr0LGcb2WDDmZc/fWXj/TXNa4uSLO5mr5
+u0boFmFC7ClZC3r3ACSqXFQtGzf4oBcUYXGb/cSihqIa6jbyYrwAgtDppjxBC78a9r/QIKkBUcY+WpYr
+JrAJxSXrMjju36rO76x0rY9yONAQqHkSXTqsptHXK+lFQ3UOOBF6MKjjvkPYy+HlCJcW6kpU/vXc0Psi
+wk312/z3hB7/y1yJV17R5EkkdeFyBylWyaJzwkkHIILtneLJ4d5VMnwM5xGETL0nZ2LAXkkD04mi6M5r
+1NlhZ7r7RV6etaA/r0QnjS01hiTErZ/cFrLE7tAxH9D0rTc0gLckCnu8yu85M7MAXa9MiGPzKVL9JJch
+YSvqriUHz6AKfaF/VU663Z39Lpy6DbemCAsgELrk/tuK2Grl+vbmCPqt6CwRFg/yqq7l0Ho3owHaXhP4
+h0ADNCqwOTXCidOd+9B9DZ5zdiUiXz4q+PuyjtWs0kvP34x1xi/IbzwULXJa8fA2mGxuMjN7kGvAvR17
+FUUbXU6O2wUv2sYIkqyXxKZis4XqbvXpD/b7JIVTTqaD0SG9IhnFxmh+MFcSqjjwsk84EJkF6byVa4wM
+L/KMFCgr0ObeShEtjjQV+Kb5tct2Bo24HeDxiKKgqzy/eRzLV1JFumAQMJ0e7p/KBZzMZQ5Gdnb4fnFa
+dCJOk6Jf/moq50Vr5o2+ZKiW608wBVSY1k1ZsEn3bmFkeM0JWF/Ge/sP3FK7ONjugdfL4SStTGu5vAll
+B5Ib9jj4yutm2vr6S/vG6spEINuyZ3Ad5uaNcKhG/4JV0FShTvhRD3ZeTvR/vwtCOjKVhVVv61h/cqiI
+OdNdPdlTSpNGGYhn69Iwfms2pha9kMiQ8XArFaAUtzJcVL0UUHfzhpJKNhuHfz9bLLLgFJrN8FoLOFXZ
+Kntgkm1ZKWXIpu37wNQ7T83FjKTF3zVjmZPcSrFaMdhx1JRmkVh0ymUo+glmtmPPaSwxdDWzZh2vjRUp
+45KUbHummlwNzvWUUOCf9rauW14xF+XAlFZXuAU2iyZDTqiXwU/+IKwcnkyw4Nt/vuV8KVJf3C4373rG
+krD2xyouY2J/7SuLT84UfTagkRBEQpb6WLvJ0vUI1EyXV9C6YhjE3KlzvU+EfkPPEto++A==)";
+
+// Generated with Cloud KMS through AsymmetricSign.
+constexpr absl::string_view kMlDsa44Signature = R"(
+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
+AAAAAAAAAAAAAAAAAAAAAA0TIS8=)";
+
+// Generated the private key with Cloud KMS and exported public key.
+constexpr absl::string_view kMlDsa87PublicKey = R"(
+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
+DbF+muWyajLvgjRX)";
+
+// Generated with Cloud KMS through AsymmetricSign.
+constexpr absl::string_view kMlDsa87Signature = R"(
+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
+ERgjKTE3PA==)";
 
 // Generated the private key with Cloud KMS and exported public key.
 constexpr absl::string_view kSlhDsaPublicKey = R"(
@@ -486,10 +683,14 @@ constexpr absl::string_view kKeyNameRsaPss4096Sha512 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/11";
 constexpr absl::string_view kKeyNameEcdsa384 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/12";
-constexpr absl::string_view kKeyNameMlDsa =
+constexpr absl::string_view kKeyNameMlDsa44 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/13";
-constexpr absl::string_view kKeyNameSlhDsa =
+constexpr absl::string_view kKeyNameMlDsa65 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/14";
+constexpr absl::string_view kKeyNameMlDsa87 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/15";
+constexpr absl::string_view kKeyNameSlhDsa =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/16";
 
 struct GcpPublicKeyParams {
   absl::string_view key_name;
@@ -507,7 +708,9 @@ std::vector<GcpPublicKeyParams> GcpPublicKeyParamsValidCombinations() {
       {kKeyNameRsa4096Sha512Pkcs1, kRsa4096Sha512Pkcs1Signature, 1},
       {kKeyNameRsaPss4096Sha256, kRsaPss4096Sha256Signature, 1},
       {kKeyNameRsaPss4096Sha512, kRsaPss4096Sha512Signature, 1},
-      {kKeyNameMlDsa, kMlDsaSignature, 2},
+      {kKeyNameMlDsa44, kMlDsa44Signature, 2},
+      {kKeyNameMlDsa65, kMlDsa65Signature, 2},
+      {kKeyNameMlDsa87, kMlDsa87Signature, 2},
       {kKeyNameSlhDsa, kSlhDsaSignature, 2},
   };
 }
@@ -522,6 +725,23 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
 
   // Public keys generated with openssl match Cloud KMS public keys.
   void ExpectGetPublicKey(int times) {
+    // Populates `response` for a PQC (ML-DSA) key. When the request does not
+    // use the NIST_PQC format, returns a sample PEM key that should not be
+    // used; the library is expected to retry with NIST_PQC instead.
+    auto set_pqc_public_key = [](const kmsV1::GetPublicKeyRequest& request,
+                                 kmsV1::PublicKey& response,
+           kmsV1::CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
+           absl::string_view base64_public_key) {
+          response.set_algorithm(algorithm);
+          if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
+            response.mutable_public_key()->set_data("public key data");
+            return;
+          }
+          response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+          std::string raw_public_key;
+          absl::Base64Unescape(base64_public_key, &raw_public_key);
+          response.mutable_public_key()->set_data(raw_public_key);
+        };
     EXPECT_CALL(*mock_connection_, GetPublicKey)
         .Times(times)
         .WillRepeatedly([&](kmsV1::GetPublicKeyRequest const& request)
@@ -572,21 +792,18 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA512);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
             response.mutable_public_key()->set_data(kRsa4096PublicKey);
-          } else if (request.name() == kKeyNameMlDsa) {
-            if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
-              // Return sample PEM key. This should not be used, and the library
-              // should retry the GetPublicKey call with NIST_PQC instead.
-              response.mutable_public_key()->set_data("public key data");
-              response.set_algorithm(
-                  kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
-            } else {
-              response.set_algorithm(
-                  kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65);
-              response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
-              std::string raw_public_key;
-              absl::Base64Unescape(kMlDsaPublicKey, &raw_public_key);
-              response.mutable_public_key()->set_data(raw_public_key);
-            }
+          } else if (request.name() == kKeyNameMlDsa44) {
+            set_pqc_public_key(request, response,
+                               kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_44,
+                               kMlDsa44PublicKey);
+          } else if (request.name() == kKeyNameMlDsa65) {
+             set_pqc_public_key(request, response,
+                               kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65,
+                               kMlDsa65PublicKey);
+          } else if (request.name() == kKeyNameMlDsa87) {
+            set_pqc_public_key(request, response,
+                               kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_87,
+                               kMlDsa87PublicKey);
           } else if (request.name() == kKeyNameSlhDsa) {
             if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
               return Status(google::cloud::StatusCode::kInvalidArgument,
@@ -844,7 +1061,12 @@ GetOfflinePemVerificationValidCombinations() {
        CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA256},
       {kRsa4096PublicKey, kRsaPss4096Sha512Signature,
        CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA512},
-      {kMlDsaPublicKey, kMlDsaSignature, CryptoKeyVersion::PQ_SIGN_ML_DSA_65},
+      {kMlDsa44PublicKey, kMlDsa44Signature,
+       CryptoKeyVersion::PQ_SIGN_ML_DSA_44},
+      {kMlDsa65PublicKey, kMlDsa65Signature,
+       CryptoKeyVersion::PQ_SIGN_ML_DSA_65},
+      {kMlDsa87PublicKey, kMlDsa87Signature,
+       CryptoKeyVersion::PQ_SIGN_ML_DSA_87},
       {kSlhDsaPublicKey, kSlhDsaSignature,
        CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S},
   };
@@ -856,7 +1078,9 @@ using GcpKmsPublicKeyVerifyOfflineTest =
 TEST_P(GcpKmsPublicKeyVerifyOfflineTest, PublicKeyVerifySuccess) {
   OfflinePemVerificationParams test_params = GetParam();
   std::string raw_public_key(test_params.public_key);
-  if (test_params.algorithm == CryptoKeyVersion::PQ_SIGN_ML_DSA_65 ||
+  if (test_params.algorithm == CryptoKeyVersion::PQ_SIGN_ML_DSA_44 ||
+      test_params.algorithm == CryptoKeyVersion::PQ_SIGN_ML_DSA_65 ||
+      test_params.algorithm == CryptoKeyVersion::PQ_SIGN_ML_DSA_87 ||
       test_params.algorithm == CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S) {
     EXPECT_TRUE(absl::Base64Unescape(test_params.public_key, &raw_public_key));
   }

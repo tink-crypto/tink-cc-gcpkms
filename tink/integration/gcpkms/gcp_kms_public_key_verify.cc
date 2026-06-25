@@ -72,7 +72,9 @@ bool IsValidAlgorithm(
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512:
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
     case CryptoKeyVersion::EC_SIGN_P384_SHA384:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44:
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
       return true;
     default:
@@ -245,31 +247,56 @@ absl::StatusOr<HashType> GetHashFromAlgorithm(
   }
 }
 
+// Builds a Tink keyset entry for the given ML-DSA instance and raw public key.
+absl::StatusOr<crypto::tink::KeysetHandleBuilder::Entry> GetMlDsaKeysetEntry(
+    const MlDsaParameters::Instance instance, absl::string_view public_key) {
+  absl::StatusOr<MlDsaParameters> params = MlDsaParameters::Create(
+      instance, MlDsaParameters::Variant::kNoPrefix);
+  if (!params.ok()) {
+    return params.status();
+  }
+  absl::StatusOr<MlDsaPublicKey> signature_public_key = MlDsaPublicKey::Create(
+      *params, public_key, absl::nullopt, GetPartialKeyAccess());
+  if (!signature_public_key.ok()) {
+    return signature_public_key.status();
+  }
+  return crypto::tink::KeysetHandleBuilder::Entry::CreateFromKey(
+      std::make_shared<const MlDsaPublicKey>(*std::move(signature_public_key)),
+      crypto::tink::KeyStatus::kEnabled,
+      /*is_primary=*/true);
+}
+
 // Converts the given raw PQC key into a Tink Keyset Handle.
 absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPqcKey(
     const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
     absl::string_view public_key) {
   auto keyset_handle_builder = crypto::tink::KeysetHandleBuilder();
   switch (algorithm) {
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44: {
+      absl::StatusOr<crypto::tink::KeysetHandleBuilder::Entry> entry =
+          GetMlDsaKeysetEntry(MlDsaParameters::Instance::kMlDsa44, public_key);
+      if (!entry.ok()) {
+        return entry.status();
+      }
+      keyset_handle_builder.AddEntry(*std::move(entry));
+      break;
+    }
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_65: {
-      absl::StatusOr<MlDsaParameters> params =
-          MlDsaParameters::Create(MlDsaParameters::Instance::kMlDsa65,
-                                  MlDsaParameters::Variant::kNoPrefix);
-      if (!params.ok()) {
-        return params.status();
+      absl::StatusOr<crypto::tink::KeysetHandleBuilder::Entry> entry =
+          GetMlDsaKeysetEntry(MlDsaParameters::Instance::kMlDsa65, public_key);
+      if (!entry.ok()) {
+        return entry.status();
       }
-      auto signature_public_key = MlDsaPublicKey::Create(
-          *params, public_key, absl::nullopt, GetPartialKeyAccess());
-      if (!signature_public_key.ok()) {
-        return signature_public_key.status();
+      keyset_handle_builder.AddEntry(*std::move(entry));
+      break;
+    }
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87: {
+      absl::StatusOr<crypto::tink::KeysetHandleBuilder::Entry> entry =
+          GetMlDsaKeysetEntry(MlDsaParameters::Instance::kMlDsa87, public_key);
+      if (!entry.ok()) {
+        return entry.status();
       }
-      crypto::tink::KeysetHandleBuilder::Entry entry =
-          crypto::tink::KeysetHandleBuilder::Entry::CreateFromKey(
-              std::make_shared<const MlDsaPublicKey>(
-                  *std::move(signature_public_key)),
-              crypto::tink::KeyStatus::kEnabled,
-              /*is_primary=*/true);
-      keyset_handle_builder.AddEntry(std::move(entry));
+      keyset_handle_builder.AddEntry(*std::move(entry));
       break;
     }
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S: {

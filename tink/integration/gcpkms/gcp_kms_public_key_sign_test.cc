@@ -84,10 +84,10 @@ constexpr absl::string_view kKeyNameErrorChecksumMismatchGetPublicKey =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/10";
 constexpr absl::string_view kKeyNameErrorChecksumMismatchGetPublicKeyPqc =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/11";
-constexpr absl::string_view kKeyNameMlDsa65 =
-    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/12";
 constexpr absl::string_view kKeyNameMlDsa44 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/13";
+constexpr absl::string_view kKeyNameMlDsa65 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/12";
 constexpr absl::string_view kKeyNameMlDsa87 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/14";
 constexpr absl::string_view kKeyNameHashSlhDsa =
