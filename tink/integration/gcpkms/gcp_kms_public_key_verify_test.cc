@@ -691,6 +691,12 @@ constexpr absl::string_view kKeyNameMlDsa87 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/15";
 constexpr absl::string_view kKeyNameSlhDsa =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/16";
+constexpr absl::string_view kKeyNameMlDsa44ExternalMu =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/17";
+constexpr absl::string_view kKeyNameMlDsa65ExternalMu =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/18";
+constexpr absl::string_view kKeyNameMlDsa87ExternalMu =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/19";
 
 struct GcpPublicKeyParams {
   absl::string_view key_name;
@@ -711,6 +717,11 @@ std::vector<GcpPublicKeyParams> GcpPublicKeyParamsValidCombinations() {
       {kKeyNameMlDsa44, kMlDsa44Signature, 2},
       {kKeyNameMlDsa65, kMlDsa65Signature, 2},
       {kKeyNameMlDsa87, kMlDsa87Signature, 2},
+      // External-mu signatures are byte-identical to plain ML-DSA signatures
+      // over the same message, so the plain ML-DSA vectors are reused here.
+      {kKeyNameMlDsa44ExternalMu, kMlDsa44Signature, 2},
+      {kKeyNameMlDsa65ExternalMu, kMlDsa65Signature, 2},
+      {kKeyNameMlDsa87ExternalMu, kMlDsa87Signature, 2},
       {kKeyNameSlhDsa, kSlhDsaSignature, 2},
   };
 }
@@ -804,6 +815,21 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
             set_pqc_public_key(request, response,
                                kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_87,
                                kMlDsa87PublicKey);
+          } else if (request.name() == kKeyNameMlDsa44ExternalMu) {
+            set_pqc_public_key(
+                request, response,
+                kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU,
+                kMlDsa44PublicKey);
+          } else if (request.name() == kKeyNameMlDsa65ExternalMu) {
+            set_pqc_public_key(
+                request, response,
+                kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU,
+                kMlDsa65PublicKey);
+          } else if (request.name() == kKeyNameMlDsa87ExternalMu) {
+            set_pqc_public_key(
+                request, response,
+                kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU,
+                kMlDsa87PublicKey);
           } else if (request.name() == kKeyNameSlhDsa) {
             if (request.public_key_format() != kmsV1::PublicKey::NIST_PQC) {
               return Status(google::cloud::StatusCode::kInvalidArgument,
@@ -1067,6 +1093,14 @@ GetOfflinePemVerificationValidCombinations() {
        CryptoKeyVersion::PQ_SIGN_ML_DSA_65},
       {kMlDsa87PublicKey, kMlDsa87Signature,
        CryptoKeyVersion::PQ_SIGN_ML_DSA_87},
+      // External-mu signatures are byte-identical to plain ML-DSA signatures
+      // over the same message, so the plain ML-DSA vectors are reused here.
+      {kMlDsa44PublicKey, kMlDsa44Signature,
+       CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU},
+      {kMlDsa65PublicKey, kMlDsa65Signature,
+       CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU},
+      {kMlDsa87PublicKey, kMlDsa87Signature,
+       CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU},
       {kSlhDsaPublicKey, kSlhDsaSignature,
        CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S},
   };
@@ -1081,6 +1115,12 @@ TEST_P(GcpKmsPublicKeyVerifyOfflineTest, PublicKeyVerifySuccess) {
   if (test_params.algorithm == CryptoKeyVersion::PQ_SIGN_ML_DSA_44 ||
       test_params.algorithm == CryptoKeyVersion::PQ_SIGN_ML_DSA_65 ||
       test_params.algorithm == CryptoKeyVersion::PQ_SIGN_ML_DSA_87 ||
+      test_params.algorithm ==
+          CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU ||
+      test_params.algorithm ==
+          CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU ||
+      test_params.algorithm ==
+          CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU ||
       test_params.algorithm == CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S) {
     EXPECT_TRUE(absl::Base64Unescape(test_params.public_key, &raw_public_key));
   }

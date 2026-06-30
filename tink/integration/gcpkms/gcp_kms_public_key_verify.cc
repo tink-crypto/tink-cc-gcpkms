@@ -75,6 +75,9 @@ bool IsValidAlgorithm(
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_44:
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU:
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
       return true;
     default:
@@ -272,7 +275,8 @@ absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPqcKey(
     absl::string_view public_key) {
   auto keyset_handle_builder = crypto::tink::KeysetHandleBuilder();
   switch (algorithm) {
-    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44: {
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU: {
       absl::StatusOr<crypto::tink::KeysetHandleBuilder::Entry> entry =
           GetMlDsaKeysetEntry(MlDsaParameters::Instance::kMlDsa44, public_key);
       if (!entry.ok()) {
@@ -281,7 +285,8 @@ absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPqcKey(
       keyset_handle_builder.AddEntry(*std::move(entry));
       break;
     }
-    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65: {
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU: {
       absl::StatusOr<crypto::tink::KeysetHandleBuilder::Entry> entry =
           GetMlDsaKeysetEntry(MlDsaParameters::Instance::kMlDsa65, public_key);
       if (!entry.ok()) {
@@ -290,7 +295,8 @@ absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPqcKey(
       keyset_handle_builder.AddEntry(*std::move(entry));
       break;
     }
-    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87: {
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU: {
       absl::StatusOr<crypto::tink::KeysetHandleBuilder::Entry> entry =
           GetMlDsaKeysetEntry(MlDsaParameters::Instance::kMlDsa87, public_key);
       if (!entry.ok()) {
