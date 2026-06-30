@@ -15,6 +15,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "tink/integration/gcpkms/internal/gcp_kms_util.h"
+
 #include <memory>
 
 #include "google/cloud/kms/v1/resources.pb.h"
@@ -93,6 +94,9 @@ bool IsPqcAlgorithm(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
     case CryptoKeyVersion::PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU:
       return true;
     default:
       return false;
@@ -145,7 +149,7 @@ absl::Status ValidateResourceName(absl::string_view key_name) {
   if (!RE2::FullMatch(key_name, *kKmsKeyNameFormat)) {
     return absl::InvalidArgumentError(absl::StrCat(
         key_name, " does not match the KMS key version name format: ",
-                     kKmsKeyNameFormat->pattern()));
+        kKmsKeyNameFormat->pattern()));
   }
   return absl::OkStatus();
 }

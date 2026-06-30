@@ -30,6 +30,7 @@ cc_library(
         "//tink/integration/gcpkms/internal:gcp_kms_util",
         "@boringssl//:crypto",
         "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/crc:crc32c",
         "@com_google_absl//absl/status",
         "@google_cloud_cpp//:kms",
         "@tink_cc//tink:public_key_sign",
@@ -154,6 +155,9 @@ cc_test(
     srcs = ["gcp_kms_public_key_sign_test.cc"],
     deps = [
         ":gcp_kms_public_key_sign",
+        "@boringssl//:crypto",
+        "@com_google_absl//absl/crc:crc32c",
+        "@com_google_absl//absl/functional:function_ref",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",

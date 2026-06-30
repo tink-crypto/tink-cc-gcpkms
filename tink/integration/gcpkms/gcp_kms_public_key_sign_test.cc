@@ -31,6 +31,8 @@
 #include "google/cloud/kms/v1/mocks/mock_key_management_connection.h"
 #include "google/cloud/status.h"
 #include "google/cloud/status_or.h"
+#include "openssl/bytestring.h"
+#include "openssl/mldsa.h"
 #include "tink/util/test_matchers.h"
 #include "tink/util/test_util.h"
 
@@ -92,6 +94,8 @@ constexpr absl::string_view kKeyNameMlDsa87 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/14";
 constexpr absl::string_view kKeyNameHashSlhDsa =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/15";
+constexpr absl::string_view kKeyNameMlDsaExternalMuInvalidKey =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/19";
 
 // Identifies a key version under test and how many GetPublicKey calls it needs
 // during key fetching.
@@ -264,6 +268,15 @@ class TestGcpKmsPublicKeySign : public testing::Test {
                 kmsV1::CryptoKeyVersion::PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
             response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
+          } else if (request.name() == kKeyNameMlDsaExternalMuInvalidKey) {
+            // Keeps the default, wrong-sized public key so the external-mu
+            // message representative computation fails to parse it.
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            if (request.public_key_format() == kmsV1::PublicKey::NIST_PQC) {
+              response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
+            }
           }
           return StatusOr<kmsV1::PublicKey>(response);
         });
@@ -286,6 +299,78 @@ class TestGcpKmsPublicKeySign : public testing::Test {
           response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
           return StatusOr<kmsV1::PublicKey>(response);
         });
+  }
+
+  // Drives the external-mu signing path end-to-end against a local ML-DSA
+  // oracle. The mock GetPublicKey returns `encoded_public_key` so the library
+  // parses a real key and computes a real mu; the mock AsymmetricSign signs
+  // that mu via `sign_mu` (the matching private key). The resulting signature
+  // is then checked with `verify`, which passes iff the mu equals the FIPS-204
+  // message representative for the data.
+  void RunMlDsaExternalMuRoundTrip(
+      absl::string_view key_name,
+      kmsV1::CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
+      absl::string_view encoded_public_key,
+      absl::FunctionRef<std::string(absl::string_view mu)> sign_mu,
+      absl::FunctionRef<bool(absl::string_view signature)> verify) {
+    // ML-DSA supports PEM, but external-mu needs the raw public key, so the
+    // library retries with NIST_PQC (two calls).
+    EXPECT_CALL(*mock_connection_, GetPublicKey)
+        .Times(2)
+        .WillRepeatedly([&](kmsV1::GetPublicKeyRequest const& request)
+                            -> StatusOr<kmsV1::PublicKey> {
+          kmsV1::PublicKey response;
+          response.set_name(request.name());
+          response.set_algorithm(algorithm);
+          response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+          if (request.public_key_format() == kmsV1::PublicKey::NIST_PQC) {
+            response.set_public_key_format(kmsV1::PublicKey::NIST_PQC);
+          }
+          response.mutable_public_key()->set_data(encoded_public_key);
+          response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
+              static_cast<uint32_t>(
+                  absl::ComputeCrc32c(response.public_key().data())));
+          return StatusOr<kmsV1::PublicKey>(response);
+        });
+
+    // Stand in for Cloud KMS: sign the external mu that the library computed
+    // with the matching ML-DSA private key.
+    kmsV1::AsymmetricSignRequest request;
+    EXPECT_CALL(*mock_connection_, AsymmetricSign)
+        .Times(1)
+        .WillOnce([&](kmsV1::AsymmetricSignRequest const& sign_request)
+                      -> StatusOr<kmsV1::AsymmetricSignResponse> {
+          request = sign_request;
+          kmsV1::AsymmetricSignResponse response;
+          response.set_name(sign_request.name());
+          response.set_verified_digest_crc32c(true);
+          response.set_signature(sign_mu(sign_request.digest().external_mu()));
+          response.mutable_signature_crc32c()->set_value(
+              static_cast<uint32_t>(absl::ComputeCrc32c(response.signature())));
+          return StatusOr<kmsV1::AsymmetricSignResponse>(response);
+        });
+
+    std::unique_ptr<PublicKeySign> kms_signer =
+        CreateGcpKmsPublicKeySignOrDie(key_name, kms_client_);
+    ASSERT_NE(kms_signer, nullptr);
+    absl::StatusOr<std::string> signature = kms_signer->Sign(kData);
+    ASSERT_TRUE(signature.ok()) << signature.status();
+
+    // The request must carry the 64-byte external mu (with checksum), no data.
+    EXPECT_EQ(request.name(), key_name);
+    EXPECT_TRUE(request.data().empty());
+    EXPECT_FALSE(request.has_data_crc32c());
+    EXPECT_TRUE(request.has_digest());
+    EXPECT_EQ(request.digest().digest_case(), kmsV1::Digest::kExternalMu);
+    EXPECT_EQ(request.digest().external_mu().size(), MLDSA_MU_BYTES);
+    EXPECT_TRUE(request.has_digest_crc32c());
+    EXPECT_EQ(request.digest_crc32c().value(),
+              static_cast<uint32_t>(
+                  absl::ComputeCrc32c(request.digest().external_mu())));
+
+    // The signature over the library's mu must verify against the data, which
+    // holds iff the mu matches the FIPS-204 message representative.
+    EXPECT_TRUE(verify(signature.value()));
   }
 
  protected:
@@ -446,6 +531,133 @@ INSTANTIATE_TEST_SUITE_P(
         RequestParam{kKeyNameMlDsa44, /*get_public_key_times=*/2},
         RequestParam{kKeyNameMlDsa65, /*get_public_key_times=*/2},
         RequestParam{kKeyNameMlDsa87, /*get_public_key_times=*/2}));
+
+// Generates a real ML-DSA key pair, lets the library compute the external mu
+// from the encoded public key, signs that mu with the private key, and checks
+// that the signature verifies against the data. This exercises the whole mu
+// path (level dispatch, key parsing, empty context, the SHAKE-256 math, and
+// the external_mu plumbing): verification passes iff the computed mu is the
+// FIPS-204 message representative for (public key, empty context, data).
+TEST_F(TestGcpKmsPublicKeySign, PublicKeySignMlDsa44ExternalMuRoundTrip) {
+  uint8_t public_key_bytes[MLDSA44_PUBLIC_KEY_BYTES];
+  uint8_t seed[MLDSA_SEED_BYTES];
+  MLDSA44_private_key private_key;
+  ASSERT_TRUE(MLDSA44_generate_key(public_key_bytes, seed, &private_key));
+  std::string encoded_public_key(
+      reinterpret_cast<const char*>(public_key_bytes),
+      sizeof(public_key_bytes));
+  RunMlDsaExternalMuRoundTrip(
+      kKeyNameMlDsa44,
+      kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU,
+      encoded_public_key,
+      [&](absl::string_view mu) {
+        uint8_t signature[MLDSA44_SIGNATURE_BYTES];
+        EXPECT_TRUE(MLDSA44_sign_message_representative(
+            signature, &private_key,
+            reinterpret_cast<const uint8_t*>(mu.data())));
+        return std::string(reinterpret_cast<const char*>(signature),
+                           sizeof(signature));
+      },
+      [&](absl::string_view signature) {
+        CBS cbs;
+        CBS_init(
+            &cbs,
+            reinterpret_cast<const uint8_t*>(encoded_public_key.data()),
+            encoded_public_key.size());
+        MLDSA44_public_key public_key;
+        return MLDSA44_parse_public_key(&public_key, &cbs) &&
+               MLDSA44_verify(
+                   &public_key,
+                   reinterpret_cast<const uint8_t*>(signature.data()),
+                   signature.size(),
+                   reinterpret_cast<const uint8_t*>(kData.data()),
+                   kData.size(), /*context=*/nullptr, /*context_len=*/0);
+      });
+}
+
+TEST_F(TestGcpKmsPublicKeySign, PublicKeySignMlDsa65ExternalMuRoundTrip) {
+  uint8_t public_key_bytes[MLDSA65_PUBLIC_KEY_BYTES];
+  uint8_t seed[MLDSA_SEED_BYTES];
+  MLDSA65_private_key private_key;
+  ASSERT_TRUE(MLDSA65_generate_key(public_key_bytes, seed, &private_key));
+  std::string encoded_public_key(
+      reinterpret_cast<const char*>(public_key_bytes),
+      sizeof(public_key_bytes));
+  RunMlDsaExternalMuRoundTrip(
+      kKeyNameMlDsa65,
+      kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU,
+      encoded_public_key,
+      [&](absl::string_view mu) {
+        uint8_t signature[MLDSA65_SIGNATURE_BYTES];
+        EXPECT_TRUE(MLDSA65_sign_message_representative(
+            signature, &private_key,
+            reinterpret_cast<const uint8_t*>(mu.data())));
+        return std::string(reinterpret_cast<const char*>(signature),
+                           sizeof(signature));
+      },
+      [&](absl::string_view signature) {
+        CBS cbs;
+        CBS_init(
+            &cbs,
+            reinterpret_cast<const uint8_t*>(encoded_public_key.data()),
+            encoded_public_key.size());
+        MLDSA65_public_key public_key;
+        return MLDSA65_parse_public_key(&public_key, &cbs) &&
+               MLDSA65_verify(
+                   &public_key,
+                   reinterpret_cast<const uint8_t*>(signature.data()),
+                   signature.size(),
+                   reinterpret_cast<const uint8_t*>(kData.data()),
+                   kData.size(), /*context=*/nullptr, /*context_len=*/0);
+      });
+}
+
+TEST_F(TestGcpKmsPublicKeySign, PublicKeySignMlDsa87ExternalMuRoundTrip) {
+  uint8_t public_key_bytes[MLDSA87_PUBLIC_KEY_BYTES];
+  uint8_t seed[MLDSA_SEED_BYTES];
+  MLDSA87_private_key private_key;
+  ASSERT_TRUE(MLDSA87_generate_key(public_key_bytes, seed, &private_key));
+  std::string encoded_public_key(
+      reinterpret_cast<const char*>(public_key_bytes),
+      sizeof(public_key_bytes));
+  RunMlDsaExternalMuRoundTrip(
+      kKeyNameMlDsa87,
+      kmsV1::CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU,
+      encoded_public_key,
+      [&](absl::string_view mu) {
+        uint8_t signature[MLDSA87_SIGNATURE_BYTES];
+        EXPECT_TRUE(MLDSA87_sign_message_representative(
+            signature, &private_key,
+            reinterpret_cast<const uint8_t*>(mu.data())));
+        return std::string(reinterpret_cast<const char*>(signature),
+                           sizeof(signature));
+      },
+      [&](absl::string_view signature) {
+        CBS cbs;
+        CBS_init(
+            &cbs,
+            reinterpret_cast<const uint8_t*>(encoded_public_key.data()),
+            encoded_public_key.size());
+        MLDSA87_public_key public_key;
+        return MLDSA87_parse_public_key(&public_key, &cbs) &&
+               MLDSA87_verify(
+                   &public_key,
+                   reinterpret_cast<const uint8_t*>(signature.data()),
+                   signature.size(),
+                   reinterpret_cast<const uint8_t*>(kData.data()),
+                   kData.size(), /*context=*/nullptr, /*context_len=*/0);
+      });
+}
+
+TEST_F(TestGcpKmsPublicKeySign, PublicKeySignMlDsaExternalMuInvalidKeyFails) {
+  ExpectGetPublicKey(/*times*/ 2);
+  std::unique_ptr<PublicKeySign> kmsSigner = CreateGcpKmsPublicKeySignOrDie(
+      kKeyNameMlDsaExternalMuInvalidKey, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  EXPECT_THAT(kmsSigner->Sign(kData).status(),
+              StatusIs(absl::StatusCode::kInternal,
+                       HasSubstr("Failed to set up the ML-DSA-65 pre-hash")));
+}
 
 // Digest-mode algorithms sign a digest of the data: the request must carry the
 // correct SHA-256 digest (with its checksum) and no data.

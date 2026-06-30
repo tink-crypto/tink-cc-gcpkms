@@ -21,6 +21,7 @@
 #include <string>
 
 #include "absl/base/nullability.h"
+#include "absl/crc/crc32c.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -29,7 +30,9 @@
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/status_or.h"
 #include "openssl/base.h"
+#include "openssl/bytestring.h"
 #include "openssl/digest.h"
+#include "openssl/mldsa.h"
 #include "tink/integration/gcpkms/internal/gcp_kms_util.h"
 #include "tink/public_key_sign.h"
 
@@ -73,6 +76,9 @@ bool IsSupported(CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
     case CryptoKeyVersion::PQ_SIGN_SLH_DSA_SHA2_128S:
     case CryptoKeyVersion::PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU:
       return true;
     default:
       return false;
@@ -130,6 +136,10 @@ absl::StatusOr<Digest::DigestCase> GetDigestFromAlgorithm(
     case CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA512:
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512:
       return Digest::DigestCase::kSha512;
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU:
+      return Digest::DigestCase::kExternalMu;
     default:
       return absl::InternalError(absl::StrCat(
           "The given algorithm ",
@@ -138,8 +148,69 @@ absl::StatusOr<Digest::DigestCase> GetDigestFromAlgorithm(
   }
 }
 
+// Computes the ML-DSA external-mu message representative (μ) of the data.
+// Unlike a plain SHA-2 digest, μ is produced with SHAKE-256 and depends on the
+// public key; see algorithm 7 in section 6.2 of FIPS-204. KMS signs with an
+// empty context, so μ is computed with an empty context as well.
+absl::StatusOr<std::string> ComputeMlDsaExternalMu(
+    CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
+    absl::string_view public_key_bytes, absl::string_view data) {
+  CBS cbs;
+  CBS_init(&cbs, reinterpret_cast<const uint8_t*>(public_key_bytes.data()),
+           public_key_bytes.size());
+  uint8_t mu[MLDSA_MU_BYTES];
+  switch (algorithm) {
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU: {
+      MLDSA44_public_key public_key;
+      MLDSA44_prehash state;
+      if (!MLDSA44_parse_public_key(&public_key, &cbs) ||
+          !MLDSA44_prehash_init(&state, &public_key, /*context=*/nullptr,
+                                /*context_len=*/0)) {
+        return absl::InternalError("Failed to set up the ML-DSA-44 pre-hash.");
+      }
+      MLDSA44_prehash_update(
+          &state, reinterpret_cast<const uint8_t*>(data.data()), data.size());
+      MLDSA44_prehash_finalize(mu, &state);
+      break;
+    }
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU: {
+      MLDSA65_public_key public_key;
+      MLDSA65_prehash state;
+      if (!MLDSA65_parse_public_key(&public_key, &cbs) ||
+          !MLDSA65_prehash_init(&state, &public_key, /*context=*/nullptr,
+                                /*context_len=*/0)) {
+        return absl::InternalError("Failed to set up the ML-DSA-65 pre-hash.");
+      }
+      MLDSA65_prehash_update(
+          &state, reinterpret_cast<const uint8_t*>(data.data()), data.size());
+      MLDSA65_prehash_finalize(mu, &state);
+      break;
+    }
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU: {
+      MLDSA87_public_key public_key;
+      MLDSA87_prehash state;
+      if (!MLDSA87_parse_public_key(&public_key, &cbs) ||
+          !MLDSA87_prehash_init(&state, &public_key, /*context=*/nullptr,
+                                /*context_len=*/0)) {
+        return absl::InternalError("Failed to set up the ML-DSA-87 pre-hash.");
+      }
+      MLDSA87_prehash_update(
+          &state, reinterpret_cast<const uint8_t*>(data.data()), data.size());
+      MLDSA87_prehash_finalize(mu, &state);
+      break;
+    }
+    default:
+      return absl::InternalError(absl::StrCat(
+          "The given algorithm ",
+          CryptoKeyVersion::CryptoKeyVersionAlgorithm_Name(algorithm),
+          " is not an external-mu algorithm."));
+  }
+  return std::string(reinterpret_cast<const char*>(mu), MLDSA_MU_BYTES);
+}
+
 absl::StatusOr<std::string> ComputeDigest(absl::string_view data,
-                                          Digest::DigestCase digest_case) {
+                                          Digest::DigestCase digest_case,
+                                          const PublicKey& public_key) {
   const EVP_MD* md;
   switch (digest_case) {
     case Digest::kSha256:
@@ -150,6 +221,10 @@ absl::StatusOr<std::string> ComputeDigest(absl::string_view data,
       break;
     case Digest::kSha512:
       md = EVP_sha512();
+      break;
+    case Digest::kExternalMu:
+      return ComputeMlDsaExternalMu(public_key.algorithm(),
+                                    public_key.public_key().data(), data);
       break;
     default:
       return absl::Status(absl::StatusCode::kInternal,
@@ -188,7 +263,8 @@ absl::StatusOr<AsymmetricSignRequest> BuildAsymmetricSignRequest(
     return digest_case.status();
   }
 
-  absl::StatusOr<std::string> digest_string = ComputeDigest(data, *digest_case);
+  absl::StatusOr<std::string> digest_string =
+      ComputeDigest(data, *digest_case, public_key);
   if (!digest_string.ok()) {
     return digest_string.status();
   }
