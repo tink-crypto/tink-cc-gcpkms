@@ -111,6 +111,24 @@ zQIDAQAB
 )";
 
 // Generated with
+// $ openssl rsa -in rsa-private-3072.pem -pubout > rsa-public-3072.pem
+// after generating the private key with
+// $ openssl genrsa -out rsa-private-3072.pem 3072
+constexpr absl::string_view kRsa3072PublicKey = R"(
+-----BEGIN PUBLIC KEY-----
+MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAi9Q2UorCOwp7Y5r+qO0n
+mdlz8/GLQ1dh+9XR/wtL2uMGwEbTyziFt3UocxlxZLw6dQtHY3xfMW37lpRX5PFt
+T68SeWRh+Cz+6i75NKa+FHrYM4d/HLYjFk+vOw75GIVfe0epi3UdMs5Ob8LGqaKP
+PF6uPk/PSEJvXZ78Is2yODuUCecV0aDajQ/873jdwBrzXuaqG9SpLf8UTg891nuS
+P+yZ075LvUu3ylcDxFsWclenATML3sgkrW1qQJKW5/UXRUQGNNnBPqF2EgIUlc6E
+N8RszNjWKtzbs4EKirHd881Naw656nM/KfLj+00g0Vfd3/lvi2o8YFbDKcnKYZfI
+tdohx9Zt4b3slCZOF/zMlvPKCn9tpa17A7rCBv57I80/+evKaq5PX84G+UcfV5kz
+LHi+FNXBtJLzYr8JKxkad4U2ecjrK1jjvJtuPbqYosKCpRfBGsy3CdfeYn2xTtDZ
+s+l73QYpWpnXUyjydhsTafQY0dce6azjrvmRWGFoSSRHAgMBAAE=
+-----END PUBLIC KEY-----
+)";
+
+// Generated with
 // $ openssl rsa -in rsa-private-4096.pem -pubout > rsa-public-4096.pem
 // after generating the private key with
 // $ openssl genrsa -out rsa-private-4096.pem 4096
@@ -141,6 +159,20 @@ ZYeDzQO6nHD6SgngAv0v9FBGTph4VUNZ0To1Bzlk8LP+P/0PWWy59aAHzAFULCiU7/6nP2KSInbR
 vg7UmMRXcfw956D3skFZn2dbu/xCRhYuZCiej72s6sNVRC1dHpIBz2+/f7ux4/gJgiYJGC9bvmkR
 DzZIy7e3zf1Be7ZT/zAreAbL+Zk8BEvoWItV0YkDUs33MkFY1MCR44grai6fGGOJAxgahlcgvkue
 O3tnao5epghHnwamS9I2h8zcBe984Z0MR+NXfw==
+)";
+
+// Generated with
+// $ echo -n "data" | openssl dgst -sha256 -binary | openssl pkeyutl -sign \
+//     -inkey rsa-private-3072.pem  \
+//     -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pkcs1 | base64
+constexpr absl::string_view kRsa3072Sha256Pkcs1Signature = R"(
+iPyX74OCyZOh7GO7Y1UI3ucb8OMb9LoiIjHrW4jFKpS/aLjDGXrjEFbfsF3JITOFfOWx3M8+jIGs
+4wwmHWiWCufqkbf4gtndGAoaEddeK2ph8tqXEnzkq8o5qDk175ffeZYmVI7/vi5xwc2oz5kd17wf
+CD0MmFGxLef1C22Wz+MJTRi0LX6Ngsy/vR4Fx5N7+EXDdqPYx2ZLIhyQvXd7GztFxZTa8s7yQ6Gr
+q2oslO13aMiu1dC9y9QYWLoY4uhF0te2WJerW5lRUp+00pk2ruC/yTaLXwS3bFZFx4FmNTClQCC/
+JLugNekKJv9/FXex/L6muQseXxfezRiKV3fY2Ee7qxngZZZ/EU/TIDqBN3q3dE0eCyA/A2Ox7xtx
+QqyTeIDeURZN9j5YtaVffp47oV2M0pSHTmcIyIwhHLx0MqWUPGUP3NvpjclNCeC5L8YieQKJiEBl
+eoLpVA4nc2KEEdHyb+pFpaN+Pvw2V8X29uRl7ZIAkzxbnbaog7p3xza8
 )";
 
 // Generated with
@@ -185,6 +217,21 @@ XPTS+QS3LmWx8Qv4wKUgdluDK0ZD+Dm2MAHfYaLq3J3LqJhjOkcnM2KuYJcUFj40edYkhwg1oYUc
 4EEKrSIh72Px6GGJa0nbRuCYx9vm7eH5zx/M4wIpOF+ScczoL6LkOyX8hFB2Ub9LxBh3OPahe/zT
 QKy0+gMjUGqjwTxq3EBlkngY0LWh2fE+COhoq6mAddViyVfJjHCApY1KZXPWgg5tzbpttmDf6yKT
 StTyAxt686GkeWL0kUzsmkGDQB1Ld6WJ+5KNlQ==
+)";
+
+// Generated with
+// echo -n "data" | openssl dgst -sha256 -binary |
+//      openssl pkeyutl -sign -inkey rsa-private-3072.pem
+//      -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pss
+//      -pkeyopt rsa_pss_saltlen:32 | base64
+constexpr absl::string_view kRsaPss3072Sha256Signature = R"(
+aM6ZNE2qRKuxc2Mdehc3Uju9eE8U4C9687M2keVOiHEeDCUo1uJJmBOPYJI8MM1h2G+KCMdy0006
+zNuLGhANYASmplSCJfiI6eEJRhAgcX2km9VGeIF07VH+X0ZrdxTKX9hq4RnQL+NiAnhcDjmYfNF1
+F+W86JjXt1QhWVPwCt0EhxC0dC41WyvM8a7r5e6P6VymkplCUuMIbnwNU4HtYyuc3HJnOgEODnrw
+Z8jlNuHEHM0v7LEzYTcUXtmC/IhLYloxqOPVechEy0TZYC3Ir3rxa8JduTPCPnrYLsWRRUAchYIh
+5eS+f4KHWSvZ8zPdjt18VouLTKZMhNRB/RlgV3SH8Ic3OVCoy979piJDyu9DGCRVZ5VoLH4Vuhkd
+F5InvIzt7Lq5ApkF1JlKVM1V328ParbgGu0H+klCown/mD9sruFzJIzCat9wbX9gOMJAVSaZ6ZCK
+XeLIF+aVe8kOxayniAulOzbK1xatXChSQk6vtg1egFu4XkwhI7C9IWDG
 )";
 
 // echo -n "data" | openssl dgst -sha256 -binary |
@@ -665,6 +712,10 @@ constexpr absl::string_view kKeyNameRsaPkcs1 =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/2";
 constexpr absl::string_view kKeyNameRsaPss =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/3";
+constexpr absl::string_view kKeyNameRsa3072Sha256Pkcs1 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/20";
+constexpr absl::string_view kKeyNameRsaPss3072Sha256 =
+    "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/21";
 constexpr absl::string_view kKeyNameErrorGetPublicKey =
     "projects/P1/locations/L1/keyRings/R1/cryptoKeys/K1/cryptoKeyVersions/4";
 constexpr absl::string_view kKeyNameCrcNameError =
@@ -710,6 +761,8 @@ std::vector<GcpPublicKeyParams> GcpPublicKeyParamsValidCombinations() {
       {kKeyNameEcdsa384, kEcdsa384Signature, 1},
       {kKeyNameRsaPkcs1, kRsaPkcs1Signature, 1},
       {kKeyNameRsaPss, kRsaPssSignature, 1},
+      {kKeyNameRsa3072Sha256Pkcs1, kRsa3072Sha256Pkcs1Signature, 1},
+      {kKeyNameRsaPss3072Sha256, kRsaPss3072Sha256Signature, 1},
       {kKeyNameRsa4096Sha256Pkcs1, kRsa4096Sha256Pkcs1Signature, 1},
       {kKeyNameRsa4096Sha512Pkcs1, kRsa4096Sha512Pkcs1Signature, 1},
       {kKeyNameRsaPss4096Sha256, kRsaPss4096Sha256Signature, 1},
@@ -778,7 +831,12 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_2048_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
             response.mutable_public_key()->set_data(kRsaPublicKey);
-          } else if (request.name() == kKeyNameRsa4096Sha256Pkcs1) {
+          } else if (request.name() == kKeyNameRsa3072Sha256Pkcs1) {
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_3072_SHA256);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.mutable_public_key()->set_data(kRsa3072PublicKey);
+            } else if (request.name() == kKeyNameRsa4096Sha256Pkcs1) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
@@ -793,6 +851,11 @@ class TestGcpKmsPublicKeyVerify : public testing::Test {
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256);
             response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
             response.mutable_public_key()->set_data(kRsaPublicKey);
+          } else if (request.name() == kKeyNameRsaPss3072Sha256) {
+            response.set_algorithm(
+                kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_3072_SHA256);
+            response.set_protection_level(kmsV1::ProtectionLevel::SOFTWARE);
+            response.mutable_public_key()->set_data(kRsa3072PublicKey);
           } else if (request.name() == kKeyNameRsaPss4096Sha256) {
             response.set_algorithm(
                 kmsV1::CryptoKeyVersion::RSA_SIGN_PSS_4096_SHA256);
@@ -1079,6 +1142,10 @@ GetOfflinePemVerificationValidCombinations() {
        CryptoKeyVersion::RSA_SIGN_PKCS1_2048_SHA256},
       {kRsaPublicKey, kRsaPssSignature,
        CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256},
+      {kRsa3072PublicKey, kRsa3072Sha256Pkcs1Signature,
+       CryptoKeyVersion::RSA_SIGN_PKCS1_3072_SHA256},
+      {kRsa3072PublicKey, kRsaPss3072Sha256Signature,
+       CryptoKeyVersion::RSA_SIGN_PSS_3072_SHA256},
       {kRsa4096PublicKey, kRsa4096Sha256Pkcs1Signature,
        CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA256},
       {kRsa4096PublicKey, kRsa4096Sha512Pkcs1Signature,
