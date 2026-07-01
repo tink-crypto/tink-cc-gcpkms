@@ -10,15 +10,15 @@ cc_library(
     hdrs = ["gcp_kms_util.h"],
     include_prefix = "tink/integration/gcpkms/internal",
     deps = [
-        "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/crc:crc32c",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_googlesource_code_re2//:re2",
+        "@abseil-cpp//absl/base:nullability",
+        "@abseil-cpp//absl/crc:crc32c",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:string_view",
         "@google_cloud_cpp//:common",
         "@google_cloud_cpp//:kms",
+        "@re2",
     ],
 )
 
@@ -27,14 +27,14 @@ cc_test(
     srcs = ["gcp_kms_util_test.cc"],
     deps = [
         ":gcp_kms_util",
-        "@com_google_absl//absl/crc:crc32c",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_googletest//:gtest_main",
+        "@abseil-cpp//absl/crc:crc32c",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings:string_view",
         "@google_cloud_cpp//:common",
         "@google_cloud_cpp//:kms",
         "@google_cloud_cpp//:kms_mocks",
+        "@googletest//:gtest_main",
         "@tink_cc//tink/util:test_matchers",
     ],
 )
@@ -46,8 +46,8 @@ cc_library(
     hdrs = ["test_file_util.h"],
     include_prefix = "tink/internal",
     deps = [
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
         "@bazel_tools//tools/cpp/runfiles",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
     ],
 )

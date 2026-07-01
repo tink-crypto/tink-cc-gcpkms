@@ -38,17 +38,14 @@ bazel_dep(
 bazel_dep(
     name = "abseil-cpp",
     version = "20250814.1",
-    repo_name = "com_google_absl",
 )
 bazel_dep(
     name = "googleapis",
     version = "0.0.0-20260525-ef19b7b7",
-    repo_name = "com_google_googleapis",
 )
 bazel_dep(
     name = "grpc",
     version = "1.74.1",
-    repo_name = "com_github_grpc_grpc",
 )
 single_version_override(
     module_name = "grpc",
@@ -56,7 +53,6 @@ single_version_override(
     patches = ["//tink/integration/gcpkms:grpc.patch"],
     version = "1.74.1",
 )
-
 bazel_dep(
     name = "tink_cc",
     version = "2.7.0",
@@ -72,12 +68,10 @@ bazel_dep(
 bazel_dep(
     name = "re2",
     version = "2025-08-12",
-    repo_name = "com_googlesource_code_re2",
 )
 
 bazel_dep(
     name = "googletest",
     version = "1.17.0",
     dev_dependency = True,
-    repo_name = "com_google_googletest",
 )
