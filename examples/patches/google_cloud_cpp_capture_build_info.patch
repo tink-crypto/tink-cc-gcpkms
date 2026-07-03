@@ -1,0 +1,12 @@
+# This patch fixes Bazel 9 compatibility in google_cloud_cpp's google/cloud/capture_build_info.bzl.
+# It loads cc_common from @rules_cc.
+--- a/google/cloud/capture_build_info.bzl
++++ b/google/cloud/capture_build_info.bzl
+@@ -32,6 +32,7 @@
+ https://github.com/bazelbuild/rules_cc/blob/0d68932a68bcd6f332b14ccc561990586de2318d/examples/my_c_compile/my_c_compile.bzl#L40-L51
+ """
+ 
++load("@rules_cc//cc:defs.bzl", "cc_common")
+ load("@rules_cc//cc:action_names.bzl", "CPP_COMPILE_ACTION_NAME")
+ load("@rules_cc//cc:toolchain_utils.bzl", "find_cpp_toolchain")
+ 

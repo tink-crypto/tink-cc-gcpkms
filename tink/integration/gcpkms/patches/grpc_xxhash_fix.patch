@@ -1,0 +1,10 @@
+# This patch fixes Bazel 9 compatibility in gRPC's third_party/xxhash.
+# It loads cc_library from @rules_cc instead of using implicit cc_library which is removed in Bazel 9.
+--- a/third_party/xxhash/BUILD
++++ b/third_party/xxhash/BUILD
+@@ -1,3 +1,5 @@
++load("@rules_cc//cc:defs.bzl", "cc_library")
++
+ # TODO(donnadionne): describe this package.
+ cc_library(
+     name = "xxhash",

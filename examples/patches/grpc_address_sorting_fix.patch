@@ -1,0 +1,25 @@
+# This patch fixes Bazel 9 compatibility in gRPC's third_party/address_sorting.
+# It loads cc_library from @rules_cc instead of using native.cc_library which is removed in Bazel 9.
+--- a/third_party/address_sorting/address_sorting.bzl
++++ b/third_party/address_sorting/address_sorting.bzl
+@@ -30,10 +30,12 @@
+ 
++load("@rules_cc//cc:defs.bzl", "cc_library")
++
+ def address_sorting_cc_library(name, srcs, hdrs, copts, includes, linkopts=[]):
+-    native.cc_library(
+-        name = name,
+-        srcs = srcs,
+-        hdrs = hdrs,
+-        copts = copts,
+-        includes = includes,
+-        linkopts = linkopts,
+-    )
++    cc_library(
++        name = name,
++        srcs = srcs,
++        hdrs = hdrs,
++        copts = copts,
++        includes = includes,
++        linkopts = linkopts,
++    )

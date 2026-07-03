@@ -1,0 +1,37 @@
+# This patch fixes Bazel 9 compatibility in google_cloud_cpp's bazel/gapic.bzl.
+# It loads cc_library and cc_test from @rules_cc and replaces native.cc_library/native.cc_test with them.
+--- a/bazel/gapic.bzl
++++ b/bazel/gapic.bzl
+@@ -1,4 +1,5 @@
+ # Copyright 2024 Google LLC
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+@@ -58,7 +59,7 @@
+         visibility = ["//:__pkg__"],
+     )
+ 
+-    native.cc_library(
++    cc_library(
+         name = "google_cloud_cpp_" + name,
+         srcs = [":srcs"],
+         hdrs = [":hdrs"],
+@@ -66,7 +67,7 @@
+         deps = ["//:common", "//:grpc_utils"] + googleapis_deps + additional_deps,
+     )
+ 
+-    native.cc_library(
++    cc_library(
+         name = "google_cloud_cpp_" + name + "_mocks",
+         hdrs = [":mocks"],
+         visibility = ["//:__pkg__"],
+@@ -76,7 +77,7 @@
+         ],
+     )
+ 
+-    [native.cc_test(
++    [cc_test(
+         name = sample.replace("/", "_").replace(".cc", ""),
+         srcs = [sample],
+         tags = ["integration-test"],

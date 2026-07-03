@@ -29,7 +29,7 @@ http_file(
 bazel_dep(name = "rules_shell", version = "0.8.0")
 bazel_dep(
     name = "rules_cc",
-    version = "0.2.9",
+    version = "0.2.11",
 )
 bazel_dep(
     name = "platforms",
@@ -45,14 +45,41 @@ bazel_dep(
 )
 bazel_dep(
     name = "grpc",
-    version = "1.74.1",
+    version = "1.81.1",
 )
 single_version_override(
     module_name = "grpc",
     patch_strip = 1,
-    patches = ["//tink/integration/gcpkms:grpc.patch"],
-    version = "1.74.1",
+    patches = [
+        "//tink/integration/gcpkms:patches/grpc_address_sorting_fix.patch",
+        "//tink/integration/gcpkms:patches/grpc_xxhash_fix.patch",
+        "//tink/integration/gcpkms:patches/grpc_build_system_fix.patch",
+    ],
+    version = "1.81.1",
 )
+
+single_version_override(
+    module_name = "c-ares",
+    patch_strip = 1,
+    patches = [
+        "//tink/integration/gcpkms:patches/c-ares_bazel9.patch",
+    ],
+    version = "1.34.6",
+)
+
+
+single_version_override(
+    module_name = "google_cloud_cpp",
+    patch_strip = 1,
+    patches = [
+        "//tink/integration/gcpkms:patches/google_cloud_cpp.patch",
+        "//tink/integration/gcpkms:patches/google_cloud_cpp_gapic.patch",
+        "//tink/integration/gcpkms:patches/google_cloud_cpp_cloud.patch",
+        "//tink/integration/gcpkms:patches/google_cloud_cpp_capture_build_info.patch",
+    ],
+    version = "3.0.0-rc1",
+)
+
 bazel_dep(
     name = "tink_cc",
     version = "2.7.0",

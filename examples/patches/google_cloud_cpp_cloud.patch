@@ -1,0 +1,12 @@
+# This patch fixes Bazel 9 compatibility in google_cloud_cpp's google/cloud/BUILD.bazel.
+# It loads cc_binary, cc_library, and cc_test from @rules_cc.
+--- a/google/cloud/BUILD.bazel
++++ b/google/cloud/BUILD.bazel
+@@ -12,6 +12,7 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ 
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ load(":capture_build_info.bzl", "capture_build_info")
+ load(":google_cloud_cpp_common.bzl", "google_cloud_cpp_common_hdrs", "google_cloud_cpp_common_srcs")
+ load(":google_cloud_cpp_common_benchmarks.bzl", "google_cloud_cpp_common_benchmarks")
