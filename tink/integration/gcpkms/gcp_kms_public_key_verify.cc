@@ -178,7 +178,7 @@ class GcpSignaturePublicKey : public SignaturePublicKey {
   }
   absl::optional<int32_t> GetIdRequirement() const override {
     // No ID requirement.
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   bool operator==(const Key& other) const override {
@@ -259,7 +259,7 @@ absl::StatusOr<crypto::tink::KeysetHandleBuilder::Entry> GetMlDsaKeysetEntry(
     return params.status();
   }
   absl::StatusOr<MlDsaPublicKey> signature_public_key = MlDsaPublicKey::Create(
-      *params, public_key, absl::nullopt, GetPartialKeyAccess());
+      *params, public_key, std::nullopt, GetPartialKeyAccess());
   if (!signature_public_key.ok()) {
     return signature_public_key.status();
   }
@@ -314,7 +314,7 @@ absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPqcKey(
         return params.status();
       }
       auto signature_public_key = SlhDsaPublicKey::Create(
-          *params, public_key, absl::nullopt, GetPartialKeyAccess());
+          *params, public_key, std::nullopt, GetPartialKeyAccess());
       if (!signature_public_key.ok()) {
         return signature_public_key.status();
       }
