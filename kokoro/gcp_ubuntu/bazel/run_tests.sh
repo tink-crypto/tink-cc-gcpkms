@@ -57,7 +57,7 @@ fi
 ./kokoro/testutils/copy_credentials.sh "examples/testdata" "gcp"
 
 MANUAL_TARGETS=()
-if [[ "${IS_KOKORO}" == "true" ]]; then
+if [[ "${IS_KOKORO}" == "true" ]] && false; then # TODO(b/532941360): Re-enable once GCP KMS credentials are updated.
   MANUAL_TARGETS+=("//tink/integration/gcpkms:gcp_kms_aead_integration_test")
 fi
 readonly MANUAL_TARGETS
@@ -71,11 +71,11 @@ BAZEL_TEST_OPTS="--cxxopt=-std=c++17,--host_cxxopt=-std=c++17"
   ./kokoro/testutils/run_bazel_tests.sh \
   -b "${BAZEL_BUILD_OPTS}" \
   -t "${BAZEL_TEST_OPTS}" \
-  . "${MANUAL_TARGETS[@]}"
+  . ${MANUAL_TARGETS[@]:+"${MANUAL_TARGETS[@]}"}
 
 # Test examples.
 EXAMPLES_MANUAL_TARGETS=()
-if [[ "${IS_KOKORO}" == "true" ]]; then
+if [[ "${IS_KOKORO}" == "true" ]] && false; then # TODO(b/532941360): Re-enable once GCP KMS credentials are updated.
   EXAMPLES_MANUAL_TARGETS+=( "//envelopeaead:envelopeaead_cli_test" )
 fi
 readonly EXAMPLES_MANUAL_TARGETS
@@ -85,4 +85,4 @@ readonly EXAMPLES_MANUAL_TARGETS
   ./kokoro/testutils/run_bazel_tests.sh \
   -b "${BAZEL_BUILD_OPTS}" \
   -t "${BAZEL_TEST_OPTS}" \
-  examples "${EXAMPLES_MANUAL_TARGETS[@]}"
+  examples ${EXAMPLES_MANUAL_TARGETS[@]:+"${EXAMPLES_MANUAL_TARGETS[@]}"}
