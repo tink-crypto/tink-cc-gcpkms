@@ -157,10 +157,6 @@ absl::Status GcpKmsMac::VerifyMac(absl::string_view mac_value,
     return absl::Status(absl::StatusCode::kInternal,
                         "Checking the MAC checksum failed.");
   }
-  if (!response->success()) {
-    return absl::Status(absl::StatusCode::kInvalidArgument,
-                        "MAC verification failed.");
-  }
   // Checks if response.verified_success_integrity matches response.success.
   // This field is designed to protect the integrity of the success boolean.
   if (response->verified_success_integrity() != response->success()) {
@@ -168,6 +164,10 @@ absl::Status GcpKmsMac::VerifyMac(absl::string_view mac_value,
                         "Checking the verification result integrity failed.");
   }
 
+  if (!response->success()) {
+    return absl::Status(absl::StatusCode::kInvalidArgument,
+                        "MAC verification failed.");
+  }
   return absl::OkStatus();
 }
 
