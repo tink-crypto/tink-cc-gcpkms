@@ -34,10 +34,17 @@ fi
 
 ./kokoro/testutils/copy_credentials.sh "testdata" "gcp"
 
+CACHE_FLAGS=()
+if [[ -n "${TINK_REMOTE_BAZEL_CACHE_GCS_BUCKET:-}" ]]; then
+  cp "${TINK_REMOTE_BAZEL_CACHE_SERVICE_KEY}" ./cache_key
+  CACHE_FLAGS+=( -c "${TINK_REMOTE_BAZEL_CACHE_GCS_BUCKET}/bazel/macos" )
+fi
+readonly CACHE_FLAGS
+
 MANUAL_TARGETS=()
 if [[ "${IS_KOKORO}" == "true" ]] && false; then # TODO(b/532941360): Re-enable once GCP KMS credentials are updated.
   MANUAL_TARGETS+=("//tink/integration/gcpkms:gcp_kms_aead_integration_test")
 fi
 readonly MANUAL_TARGETS
 
-./kokoro/testutils/run_bazel_tests.sh . ${MANUAL_TARGETS[@]:+"${MANUAL_TARGETS[@]}"}
+./kokoro/testutils/run_bazel_tests.sh ${CACHE_FLAGS[@]:-} . ${MANUAL_TARGETS[@]:+"${MANUAL_TARGETS[@]}"}

@@ -56,6 +56,17 @@ fi
 ./kokoro/testutils/copy_credentials.sh "testdata" "gcp"
 ./kokoro/testutils/copy_credentials.sh "examples/testdata" "gcp"
 
+CACHE_FLAGS=()
+if [[ -n "${TINK_REMOTE_BAZEL_CACHE_GCS_BUCKET:-}" ]]; then
+  if [[ -z "${TINK_CC_BASE_IMAGE_HASH:-}" ]] && [[ -f ./kokoro/testutils/cc_test_container_images.sh ]]; then
+    source ./kokoro/testutils/cc_test_container_images.sh
+  fi
+  cp "${TINK_REMOTE_BAZEL_CACHE_SERVICE_KEY}" ./cache_key
+  cp "${TINK_REMOTE_BAZEL_CACHE_SERVICE_KEY}" ./examples/cache_key
+  CACHE_FLAGS+=( -c "${TINK_REMOTE_BAZEL_CACHE_GCS_BUCKET}/bazel/${TINK_CC_BASE_IMAGE_HASH:-default}" )
+fi
+readonly CACHE_FLAGS
+
 MANUAL_TARGETS=()
 if [[ "${IS_KOKORO}" == "true" ]] && false; then # TODO(b/532941360): Re-enable once GCP KMS credentials are updated.
   MANUAL_TARGETS+=("//tink/integration/gcpkms:gcp_kms_aead_integration_test")
@@ -66,13 +77,6 @@ readonly MANUAL_TARGETS
 BAZEL_BUILD_OPTS="--cxxopt=-std=c++17,--host_cxxopt=-std=c++17"
 BAZEL_TEST_OPTS="--cxxopt=-std=c++17,--host_cxxopt=-std=c++17"
 
-# 2. Pass flags BEFORE the positional arguments ('.')
-./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
-  ./kokoro/testutils/run_bazel_tests.sh \
-  -b "${BAZEL_BUILD_OPTS}" \
-  -t "${BAZEL_TEST_OPTS}" \
-  . ${MANUAL_TARGETS[@]:+"${MANUAL_TARGETS[@]}"}
-
 # Test examples.
 EXAMPLES_MANUAL_TARGETS=()
 if [[ "${IS_KOKORO}" == "true" ]] && false; then # TODO(b/532941360): Re-enable once GCP KMS credentials are updated.
@@ -80,9 +84,17 @@ if [[ "${IS_KOKORO}" == "true" ]] && false; then # TODO(b/532941360): Re-enable 
 fi
 readonly EXAMPLES_MANUAL_TARGETS
 
-# 3. Pass flags BEFORE the positional arguments ('examples')
-./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" \
-  ./kokoro/testutils/run_bazel_tests.sh \
-  -b "${BAZEL_BUILD_OPTS}" \
-  -t "${BAZEL_TEST_OPTS}" \
-  examples ${EXAMPLES_MANUAL_TARGETS[@]:+"${EXAMPLES_MANUAL_TARGETS[@]}"}
+cat <<EOF > _do_run_test.sh
+#!/bin/bash
+set -eEuo pipefail
+
+./kokoro/testutils/run_bazel_tests.sh \${CACHE_FLAGS[@]:-} \\
+  -b "${BAZEL_BUILD_OPTS}" \\
+  -t "${BAZEL_TEST_OPTS}" \\
+  . \${MANUAL_TARGETS[@]:+"\${MANUAL_TARGETS[@]}"}
+
+./kokoro/testutils/run_bazel_tests.sh \${CACHE_FLAGS[@]:-} \\
+  -b "${BAZEL_BUILD_OPTS}" \\
+  -t "${BAZEL_TEST_OPTS}" \\
+  examples \${EXAMPLES_MANUAL_TARGETS[@]:+"\${EXAMPLES_MANUAL_TARGETS[@]}"}
+EOF
