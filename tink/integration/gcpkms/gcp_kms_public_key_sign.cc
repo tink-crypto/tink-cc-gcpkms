@@ -391,8 +391,7 @@ absl::StatusOr<std::unique_ptr<PublicKeySign>> CreateGcpKmsPublicKeySign(
                          response->algorithm()),
                      " is not supported."));
   }
-  return absl::make_unique<GcpKmsPublicKeySign>(key_name, *response,
-                                                kms_client);
+  return std::make_unique<GcpKmsPublicKeySign>(key_name, *response, kms_client);
 }
 
 }  // namespace gcpkms
