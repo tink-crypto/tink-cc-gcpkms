@@ -485,6 +485,19 @@ TEST_F(TestGcpKmsPublicKeySign, LargeInputDataFails) {
       StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("larger than")));
 }
 
+TEST_F(TestGcpKmsPublicKeySign,
+       SignLargeInputDataSucceedsForDigestBasedAlgorithm) {
+  DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameRequiresDigest);
+  ExpectGetPublicKey(1);
+  ExpectSign(signer, /*times=*/1);
+  std::unique_ptr<PublicKeySign> kmsSigner =
+      CreateGcpKmsPublicKeySignOrDie(kKeyNameRequiresDigest, kms_client_);
+  ASSERT_NE(kmsSigner, nullptr);
+  std::string large_data(64 * 1024 + 1, 'A');
+  EXPECT_THAT(kmsSigner->Sign(large_data),
+              IsOkAndHolds(SignOrDie(signer, kDigest)));
+}
+
 TEST_F(TestGcpKmsPublicKeySign, WrongKeyNameInTheResponseFails) {
   DummyPublicKeySign signer = DummyPublicKeySign(kKeyNameErrorWrongKeyName);
   ExpectGetPublicKey(1);

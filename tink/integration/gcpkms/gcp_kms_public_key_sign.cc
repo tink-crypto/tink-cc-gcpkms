@@ -250,6 +250,13 @@ absl::StatusOr<AsymmetricSignRequest> BuildAsymmetricSignRequest(
   request.set_name(key_name);
   if (RequiresDataForSign(public_key.algorithm(),
                           public_key.protection_level())) {
+    if (data.size() > kMaxSignDataSize) {
+      return absl::Status(
+          absl::StatusCode::kInvalidArgument,
+          absl::StrCat("The input data (", data.size(),
+                       " bytes) is larger than the allowed limit (",
+                       kMaxSignDataSize, " bytes)."));
+    }
     request.set_data(data);
     request.mutable_data_crc32c()->set_value(
         static_cast<uint32_t>(absl::ComputeCrc32c(data)));
@@ -314,14 +321,6 @@ class GcpKmsPublicKeySign : public PublicKeySign {
 
 absl::StatusOr<std::string> GcpKmsPublicKeySign::Sign(
     absl::string_view data) const {
-  if (data.size() > kMaxSignDataSize) {
-    return absl::Status(
-        absl::StatusCode::kInvalidArgument,
-        absl::StrCat("The input data (", data.size(),
-                     " bytes) is larger than the allowed limit (",
-                     kMaxSignDataSize, " bytes)."));
-  }
-
   // Build the sign request.
   absl::StatusOr<AsymmetricSignRequest> request =
       BuildAsymmetricSignRequest(key_name_, data, public_key_);
