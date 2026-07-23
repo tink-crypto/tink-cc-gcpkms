@@ -1050,8 +1050,8 @@ TEST_P(GetSignaturePublicKeyTest, Success) {
   ASSERT_TRUE(absl::Base64Unescape(test_params.signature, &signature));
 
   EXPECT_THAT(tink_keyset_handle->Validate(), IsOk());
-  auto verifier = tink_keyset_handle->GetPrimitive<PublicKeyVerify>(
-      crypto::tink::ConfigSignatureV0());
+  auto verifier =
+      tink_keyset_handle->GetPrimitive<PublicKeyVerify>(ConfigSignature2026());
   EXPECT_THAT(verifier, IsOk());
   EXPECT_THAT(verifier.value()->Verify(signature, kData), IsOk());
 }
