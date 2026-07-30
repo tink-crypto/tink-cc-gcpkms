@@ -42,7 +42,7 @@ fi
 readonly CACHE_FLAGS
 
 MANUAL_TARGETS=()
-if [[ "${IS_KOKORO}" == "true" ]] && false; then # TODO(b/532941360): Re-enable once GCP KMS credentials are updated.
+if [[ "${IS_KOKORO}" == "true" ]]; then
   MANUAL_TARGETS+=("//tink/integration/gcpkms:gcp_kms_aead_integration_test")
 fi
 readonly MANUAL_TARGETS
