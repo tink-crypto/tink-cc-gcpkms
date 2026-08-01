@@ -334,7 +334,7 @@ absl::StatusOr<std::unique_ptr<KeysetHandle>> GetTinkKeySetHandleFromPqcKey(
           " is not supported for verification."));
   }
 
-  auto keyset_handle = keyset_handle_builder.Build(KeyGenConfigSignatureV0());
+  auto keyset_handle = keyset_handle_builder.Build(KeyGenConfigSignature2026());
   if (!keyset_handle.ok()) {
     return keyset_handle.status();
   }
@@ -451,8 +451,7 @@ GetInternalVerifierForAlgorithm(
     return keyset_handle.status();
   }
   return (*keyset_handle)
-      ->GetPrimitive<crypto::tink::PublicKeyVerify>(
-          crypto::tink::ConfigSignatureV0());
+      ->GetPrimitive<crypto::tink::PublicKeyVerify>(ConfigSignature2026());
 }
 
 // GcpKmsPublicKeyVerify is an implementation of PublicKeyVerify that uses an
