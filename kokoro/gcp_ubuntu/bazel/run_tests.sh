@@ -88,13 +88,23 @@ cat <<EOF > _do_run_test.sh
 #!/bin/bash
 set -eEuo pipefail
 
-./kokoro/testutils/run_bazel_tests.sh \${CACHE_FLAGS[@]:-} \\
+./kokoro/testutils/run_bazel_tests.sh ${CACHE_FLAGS[@]:-} \\
   -b "${BAZEL_BUILD_OPTS}" \\
   -t "${BAZEL_TEST_OPTS}" \\
-  . \${MANUAL_TARGETS[@]:+"\${MANUAL_TARGETS[@]}"}
+  . ${MANUAL_TARGETS[@]:+"${MANUAL_TARGETS[@]}"}
 
-./kokoro/testutils/run_bazel_tests.sh \${CACHE_FLAGS[@]:-} \\
+./kokoro/testutils/run_bazel_tests.sh ${CACHE_FLAGS[@]:-} \\
   -b "${BAZEL_BUILD_OPTS}" \\
   -t "${BAZEL_TEST_OPTS}" \\
-  examples \${EXAMPLES_MANUAL_TARGETS[@]:+"\${EXAMPLES_MANUAL_TARGETS[@]}"}
+  examples ${EXAMPLES_MANUAL_TARGETS[@]:+"${EXAMPLES_MANUAL_TARGETS[@]}"}
 EOF
+
+chmod +x _do_run_test.sh
+
+cleanup() {
+  rm -f _do_run_test.sh
+}
+
+trap cleanup EXIT
+
+./kokoro/testutils/docker_execute.sh "${RUN_COMMAND_ARGS[@]}" ./_do_run_test.sh
