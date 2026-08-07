@@ -1,0 +1,45 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+cc_binary(
+    name = "mac_cli",
+    srcs = ["mac_cli.cc"],
+    deps = [
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log:absl_check",
+        "@abseil-cpp//absl/log:absl_log",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@google_cloud_cpp//:common",
+        "@google_cloud_cpp//:kms",
+        "@tink_cc//tink:mac",
+        "@tink_cc_gcpkms//tink/integration/gcpkms:gcp_kms_mac",
+    ],
+)
+
+sh_test(
+    name = "mac_cli_test",
+    size = "small",
+    srcs = ["mac_cli_test.sh"],
+    args = [
+        "$(rootpath :mac_cli)",
+        # Change this to your MAC CryptoKeyVersion.
+        "projects/tink-test-infrastructure/locations/global/keyRings/unit-and-integration-testing/cryptoKeys/mac-key/cryptoKeyVersions/1",
+        "$(rootpath //testdata/gcp:credential.json)",
+    ],
+    data = [
+        ":mac_cli",
+        # Change this to your credential.
+        "//testdata/gcp:credential.json",
+    ],
+    tags = [
+        "manual",
+        "requires-network",
+    ],
+)
