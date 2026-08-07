@@ -1,0 +1,52 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+cc_binary(
+    name = "signature_cli",
+    srcs = ["signature_cli.cc"],
+    deps = [
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log:absl_check",
+        "@abseil-cpp//absl/log:absl_log",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@google_cloud_cpp//:common",
+        "@google_cloud_cpp//:kms",
+        "@tink_cc//tink:partial_key_access",
+        "@tink_cc//tink:public_key_sign",
+        "@tink_cc//tink:public_key_verify",
+        "@tink_cc//tink/signature:signature_public_key",
+        "@tink_cc_gcpkms//tink/integration/gcpkms:gcp_kms_public_key_sign",
+        "@tink_cc_gcpkms//tink/integration/gcpkms:gcp_kms_public_key_verify",
+    ],
+)
+
+sh_test(
+    name = "signature_cli_test",
+    size = "small",
+    srcs = ["signature_cli_test.sh"],
+    args = [
+        "$(rootpath :signature_cli)",
+        # Change this to your asymmetric-sign CryptoKeyVersion.
+        "projects/tink-test-infrastructure/locations/global/keyRings/unit-and-integration-testing/cryptoKeys/signature-key/cryptoKeyVersions/1",
+        "$(rootpath //testdata/gcp:credential.json)",
+        "$(rootpath //testdata/gcp:signature_key_public.pem)",
+    ],
+    data = [
+        ":signature_cli",
+        # Change this to your credential.
+        "//testdata/gcp:credential.json",
+        # Change this to your public key.
+        "//testdata/gcp:signature_key_public.pem",
+    ],
+    tags = [
+        "manual",
+        "requires-network",
+    ],
+)

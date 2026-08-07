@@ -81,6 +81,7 @@ BAZEL_TEST_OPTS="--cxxopt=-std=c++17,--host_cxxopt=-std=c++17"
 EXAMPLES_MANUAL_TARGETS=()
 if [[ "${IS_KOKORO}" == "true" ]]; then
   EXAMPLES_MANUAL_TARGETS+=( "//envelopeaead:envelopeaead_cli_test" )
+  EXAMPLES_MANUAL_TARGETS+=( "//signature:signature_cli_test" )
 fi
 readonly EXAMPLES_MANUAL_TARGETS
 
