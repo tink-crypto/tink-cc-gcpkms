@@ -17,6 +17,8 @@
 #include "tink/integration/gcpkms/internal/test_file_util.h"
 
 #include <cstdlib>
+#include <fstream>
+#include <sstream>
 #include <string>
 
 #include "absl/status/status.h"
@@ -45,6 +47,19 @@ absl::StatusOr<std::string> RunfilesPath(absl::string_view path) {
   }
 
   return runfiles->Rlocation(absl::StrCat(workspace_dir, "/", path));
+}
+
+absl::StatusOr<std::string> ReadFile(absl::string_view filename) {
+  std::ifstream input_stream;
+  input_stream.open(std::string(filename), std::ifstream::in);
+  if (!input_stream.is_open()) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("Error opening file ", filename));
+  }
+  std::stringstream input;
+  input << input_stream.rdbuf();
+  input_stream.close();
+  return input.str();
 }
 
 }  // namespace internal

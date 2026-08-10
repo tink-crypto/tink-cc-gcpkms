@@ -211,6 +211,30 @@ cc_library(
 )
 
 cc_test(
+    name = "gcp_kms_mac_integration_test",
+    size = "medium",
+    srcs = ["gcp_kms_mac_integration_test.cc"],
+    data = [
+        "//testdata/gcp:credentials",
+        "@google_root_pem//file",
+    ],
+    # This target requires valid credentials to interact with the Google Cloud
+    # KMS.
+    tags = ["manual"],
+    deps = [
+        ":gcp_kms_mac",
+        "//tink/integration/gcpkms/internal:gcp_kms_test_client",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings:string_view",
+        "@google_cloud_cpp//:kms",
+        "@googletest//:gtest_main",
+        "@tink_cc//tink:mac",
+        "@tink_cc//tink/util:test_matchers",
+    ],
+)
+
+cc_test(
     name = "gcp_kms_mac_test",
     srcs = ["gcp_kms_mac_test.cc"],
     deps = [

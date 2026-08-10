@@ -51,3 +51,20 @@ cc_library(
         "@bazel_tools//tools/cpp/runfiles",
     ],
 )
+
+cc_library(
+    name = "gcp_kms_test_client",
+    testonly = 1,
+    srcs = ["gcp_kms_test_client.cc"],
+    hdrs = ["gcp_kms_test_client.h"],
+    include_prefix = "tink/integration/gcpkms/internal",
+    deps = [
+        ":test_file_util",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:string_view",
+        "@google_cloud_cpp//:common",
+        "@google_cloud_cpp//:kms",
+    ],
+)

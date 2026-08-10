@@ -28,6 +28,8 @@ namespace internal {
 
 absl::StatusOr<std::string> RunfilesPath(absl::string_view path);
 
+absl::StatusOr<std::string> ReadFile(absl::string_view filename);
+
 }  // namespace internal
 }  // namespace tink
 }  // namespace crypto

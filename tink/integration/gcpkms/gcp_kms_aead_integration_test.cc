@@ -14,12 +14,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <fstream>
-#include <iostream>
 #include <memory>
-#include <sstream>
 #include <string>
-#include <utility>
 
 #include "google/cloud/kms/v1/service.grpc.pb.h"
 #include "grpcpp/channel.h"
@@ -29,7 +25,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
+
 #include "absl/strings/string_view.h"
 #include "tink/integration/gcpkms/gcp_kms_aead.h"
 #include "tink/integration/gcpkms/gcp_kms_client.h"
@@ -99,25 +95,15 @@ TEST(GcpKmsAeadIntegrationTest, EncryptDecrypt) {
               Not(IsOk()));
 }
 
-absl::StatusOr<std::string> ReadFile(const std::string& filename) {
-  std::ifstream input_stream;
-  input_stream.open(filename, std::ifstream::in);
-  if (!input_stream.is_open()) {
-    return absl::Status(absl::StatusCode::kInvalidArgument,
-                        absl::StrCat("Error opening file ", filename));
-  }
-  std::stringstream input;
-  input << input_stream.rdbuf();
-  input_stream.close();
-  return input.str();
-}
+
 
 TEST(GcpKmsAeadIntegrationTest, GcpKmsAeadNewWorks) {
   // Read credentials file.
   absl::StatusOr<std::string> credentials_path =
       internal::RunfilesPath("testdata/gcp/credential.json");
   ASSERT_THAT(credentials_path, IsOk());
-  absl::StatusOr<std::string> json_creds = ReadFile(*credentials_path);
+  absl::StatusOr<std::string> json_creds =
+      internal::ReadFile(*credentials_path);
   ASSERT_THAT(json_creds, IsOk());
 
   // Create a GCP KMS stub.
