@@ -47,7 +47,7 @@ constexpr absl::string_view kRootPemPath = "google_root_pem/file/downloaded";
 
 void SetGrpcDefaultSslRootsForTesting() {
   absl::StatusOr<std::string> root_pem_path =
-      crypto::tink::internal::RunfilesPath(kRootPemPath);
+      crypto::tink::internal::ExternalRunfilesPath(kRootPemPath);
   if (!root_pem_path.ok() || root_pem_path->empty()) {
     return;
   }

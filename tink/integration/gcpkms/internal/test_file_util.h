@@ -26,7 +26,16 @@ namespace crypto {
 namespace tink {
 namespace internal {
 
+// Returns the path of `path` in the runfiles tree, where `path` is relative to
+// the root of this repository, e.g. "testdata/gcp/credential.json".
 absl::StatusOr<std::string> RunfilesPath(absl::string_view path);
+
+// Returns the path of `path` in the runfiles tree, where `path` is relative to
+// the root of the runfiles tree and therefore starts with the name of the
+// repository that provides the file, e.g. "google_root_pem/file/downloaded".
+// Use this for files that come from an external repository; files in this
+// repository are not reachable this way, use RunfilesPath() for those.
+absl::StatusOr<std::string> ExternalRunfilesPath(absl::string_view path);
 
 absl::StatusOr<std::string> ReadFile(absl::string_view filename);
 

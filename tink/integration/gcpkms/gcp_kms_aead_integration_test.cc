@@ -59,7 +59,7 @@ class GcpKmsAeadIntegrationTestEnvironment : public Environment {
   void SetUp() override {
     // Set root certificates for gRPC in Bazel Test which are needed on macOS.
     absl::StatusOr<std::string> root_pem_path =
-        internal::RunfilesPath("google_root_pem/file/downloaded");
+        internal::ExternalRunfilesPath("google_root_pem/file/downloaded");
     ASSERT_THAT(root_pem_path, IsOk());
     setenv("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH", root_pem_path->c_str(),
            /*overwrite=*/false);

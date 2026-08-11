@@ -33,7 +33,7 @@ namespace internal {
 
 using ::bazel::tools::cpp::runfiles::Runfiles;
 
-absl::StatusOr<std::string> RunfilesPath(absl::string_view path) {
+absl::StatusOr<std::string> ExternalRunfilesPath(absl::string_view path) {
   std::string error;
   std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&error));
   if (runfiles == nullptr) {
@@ -41,12 +41,21 @@ absl::StatusOr<std::string> RunfilesPath(absl::string_view path) {
         absl::StrCat("Unable to determine runfile path: ", error));
   }
 
+  // Rlocation() maps the repository name at the start of `path` to the name
+  // under which the repository appears in the runfiles tree.
+  std::string runfiles_path = runfiles->Rlocation(std::string(path));
+  if (runfiles_path.empty()) {
+    return absl::NotFoundError(absl::StrCat("No runfile named ", path));
+  }
+  return runfiles_path;
+}
+
+absl::StatusOr<std::string> RunfilesPath(absl::string_view path) {
   const char* workspace_dir = getenv("TEST_WORKSPACE");
   if (workspace_dir == nullptr || workspace_dir[0] == '\0') {
     return absl::InternalError("Unable to determine workspace name.");
   }
-
-  return runfiles->Rlocation(absl::StrCat(workspace_dir, "/", path));
+  return ExternalRunfilesPath(absl::StrCat(workspace_dir, "/", path));
 }
 
 absl::StatusOr<std::string> ReadFile(absl::string_view filename) {
