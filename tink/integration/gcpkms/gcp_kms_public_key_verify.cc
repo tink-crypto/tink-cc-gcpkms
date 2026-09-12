@@ -549,7 +549,7 @@ absl::StatusOr<std::unique_ptr<PublicKeyVerify>> CreateGcpKmsPublicKeyVerify(
   if (!verifier.ok()) {
     return verifier.status();
   }
-  return absl::make_unique<GcpKmsPublicKeyVerify>(*std::move(verifier));
+  return std::make_unique<GcpKmsPublicKeyVerify>(*std::move(verifier));
 }
 
 absl::StatusOr<std::unique_ptr<SignaturePublicKey>>
@@ -562,7 +562,7 @@ CreateSignaturePublicKeyWithNoRpcs(
   if (!key.ok()) {
     return key.status();
   }
-  return absl::make_unique<GcpSignaturePublicKey>(*key);
+  return std::make_unique<GcpSignaturePublicKey>(*key);
 }
 
 absl::StatusOr<std::unique_ptr<PublicKeyVerify>>
@@ -580,7 +580,7 @@ CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key) {
   if (!verifier.ok()) {
     return verifier.status();
   }
-  return absl::make_unique<GcpKmsPublicKeyVerify>(*std::move(verifier));
+  return std::make_unique<GcpKmsPublicKeyVerify>(*std::move(verifier));
 }
 
 }  // namespace gcpkms
