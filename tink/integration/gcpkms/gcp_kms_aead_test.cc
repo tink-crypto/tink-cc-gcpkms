@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/kms/v1/mocks/mock_key_management_connection.h"
@@ -37,8 +38,8 @@ namespace integration {
 namespace gcpkms {
 
 namespace kmsV1 = ::google::cloud::kms::v1;
+using ::absl_testing::IsOk;
 using ::crypto::tink::test::DummyAead;
-using ::crypto::tink::test::IsOk;
 using ::crypto::tink::test::IsOkAndHolds;
 using ::crypto::tink::test::StatusIs;
 using ::google::cloud::Status;

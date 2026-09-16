@@ -159,6 +159,7 @@ cc_test(
     deps = [
         ":gcp_kms_aead",
         "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:status_matchers",
         "@abseil-cpp//absl/strings:string_view",
         "@google_cloud_cpp//:common",
         "@google_cloud_cpp//:kms",
@@ -227,6 +228,7 @@ cc_test(
         ":gcp_kms_public_key_verify",
         "@abseil-cpp//absl/crc:crc32c",
         "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:status_matchers",
         "@abseil-cpp//absl/strings",
         "@google_cloud_cpp//:common",
         "@google_cloud_cpp//:kms",
@@ -294,6 +296,7 @@ cc_test(
         ":gcp_kms_mac",
         "@abseil-cpp//absl/crc:crc32c",
         "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:status_matchers",
         "@abseil-cpp//absl/strings:string_view",
         "@google_cloud_cpp//:common",
         "@google_cloud_cpp//:kms",
