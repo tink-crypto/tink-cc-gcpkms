@@ -29,6 +29,7 @@ cc_test(
         ":gcp_kms_util",
         "@abseil-cpp//absl/crc:crc32c",
         "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:status_matchers",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
         "@google_cloud_cpp//:common",
