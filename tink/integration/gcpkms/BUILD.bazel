@@ -135,7 +135,6 @@ cc_test(
         "@googletest//:gtest_main",
         "@grpc//:grpc++",
         "@tink_cc//tink:aead",
-        "@tink_cc//tink/util:test_matchers",
     ],
 )
 
@@ -212,6 +211,7 @@ cc_test(
         "@abseil-cpp//absl/crc:crc32c",
         "@abseil-cpp//absl/functional:function_ref",
         "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:status_matchers",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings:string_view",
         "@boringssl//:crypto",

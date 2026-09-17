@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 #include "absl/crc/crc32c.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
@@ -44,8 +45,8 @@ namespace {
 
 namespace kmsV1 = ::google::cloud::kms::v1;
 
+using ::absl_testing::IsOkAndHolds;
 using ::crypto::tink::test::DummyPublicKeySign;
-using ::crypto::tink::test::IsOkAndHolds;
 using ::crypto::tink::test::StatusIs;
 using ::google::cloud::Status;
 using ::google::cloud::StatusOr;

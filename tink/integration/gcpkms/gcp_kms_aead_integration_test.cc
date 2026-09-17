@@ -31,7 +31,6 @@
 #include "tink/integration/gcpkms/gcp_kms_aead.h"
 #include "tink/integration/gcpkms/gcp_kms_client.h"
 #include "tink/integration/gcpkms/internal/test_file_util.h"
-#include "tink/util/test_matchers.h"
 
 namespace crypto {
 namespace tink {
@@ -40,7 +39,7 @@ namespace gcpkms {
 namespace {
 
 using ::absl_testing::IsOk;
-using ::crypto::tink::test::IsOkAndHolds;
+using ::absl_testing::IsOkAndHolds;
 using ::google::cloud::kms::v1::KeyManagementService;
 using ::testing::Environment;
 using ::testing::Not;

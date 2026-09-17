@@ -39,8 +39,8 @@ namespace gcpkms {
 
 namespace kmsV1 = ::google::cloud::kms::v1;
 using ::absl_testing::IsOk;
+using ::absl_testing::IsOkAndHolds;
 using ::crypto::tink::test::DummyAead;
-using ::crypto::tink::test::IsOkAndHolds;
 using ::crypto::tink::test::StatusIs;
 using ::google::cloud::Status;
 using ::google::cloud::StatusOr;
