@@ -28,6 +28,7 @@
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
 
+#include "absl/status/status_matchers.h"
 #include "tink/integration/gcpkms/gcp_kms_public_key_sign.h"
 #include "tink/integration/gcpkms/gcp_kms_public_key_verify.h"
 #include "tink/integration/gcpkms/internal/gcp_kms_test_client.h"
@@ -44,7 +45,7 @@ namespace integration {
 namespace gcpkms {
 namespace {
 
-using ::crypto::tink::test::IsOk;
+using ::absl_testing::IsOk;
 using ::crypto::tink::test::StatusIs;
 
 using ::google::cloud::kms::v1::PublicKey;

@@ -23,6 +23,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "tink/integration/gcpkms/internal/test_file_util.h"
@@ -35,7 +36,7 @@ namespace integration {
 namespace gcpkms {
 namespace {
 
-using ::crypto::tink::test::IsOk;
+using ::absl_testing::IsOk;
 using ::crypto::tink::test::StatusIs;
 
 TEST(GcpKmsClientTest, ClientNotBoundToAKey) {

@@ -24,6 +24,7 @@
 #include "gtest/gtest.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 
 #include "absl/strings/string_view.h"
@@ -38,7 +39,7 @@ namespace integration {
 namespace gcpkms {
 namespace {
 
-using ::crypto::tink::test::IsOk;
+using ::absl_testing::IsOk;
 using ::crypto::tink::test::IsOkAndHolds;
 using ::google::cloud::kms::v1::KeyManagementService;
 using ::testing::Environment;
