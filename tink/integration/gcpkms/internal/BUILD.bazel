@@ -8,7 +8,6 @@ cc_library(
     name = "gcp_kms_util",
     srcs = ["gcp_kms_util.cc"],
     hdrs = ["gcp_kms_util.h"],
-    include_prefix = "tink/integration/gcpkms/internal",
     deps = [
         "@abseil-cpp//absl/base:nullability",
         "@abseil-cpp//absl/crc:crc32c",
@@ -45,7 +44,6 @@ cc_library(
     testonly = 1,
     srcs = ["test_file_util.cc"],
     hdrs = ["test_file_util.h"],
-    include_prefix = "tink/internal",
     deps = [
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
@@ -58,7 +56,6 @@ cc_library(
     testonly = 1,
     srcs = ["gcp_kms_test_client.cc"],
     hdrs = ["gcp_kms_test_client.h"],
-    include_prefix = "tink/integration/gcpkms/internal",
     deps = [
         ":test_file_util",
         "@abseil-cpp//absl/status",

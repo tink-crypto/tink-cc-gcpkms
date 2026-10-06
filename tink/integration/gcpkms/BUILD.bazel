@@ -8,7 +8,6 @@ cc_library(
     name = "gcp_kms_aead",
     srcs = ["gcp_kms_aead.cc"],
     hdrs = ["gcp_kms_aead.h"],
-    include_prefix = "tink/integration/gcpkms",
     visibility = ["//visibility:public"],
     deps = [
         "@abseil-cpp//absl/memory",
@@ -28,7 +27,6 @@ cc_library(
     name = "gcp_kms_public_key_sign",
     srcs = ["gcp_kms_public_key_sign.cc"],
     hdrs = ["gcp_kms_public_key_sign.h"],
-    include_prefix = "tink/integration/gcpkms",
     visibility = ["//visibility:public"],
     deps = [
         "//tink/integration/gcpkms/internal:gcp_kms_util",
@@ -50,7 +48,6 @@ cc_library(
     name = "gcp_kms_public_key_verify",
     srcs = ["gcp_kms_public_key_verify.cc"],
     hdrs = ["gcp_kms_public_key_verify.h"],
-    include_prefix = "tink/integration/gcpkms",
     visibility = ["//visibility:public"],
     deps = [
         "//tink/integration/gcpkms/internal:gcp_kms_util",
@@ -92,7 +89,6 @@ cc_library(
     name = "gcp_kms_client",
     srcs = ["gcp_kms_client.cc"],
     hdrs = ["gcp_kms_client.h"],
-    include_prefix = "tink/integration/gcpkms",
     visibility = ["//visibility:public"],
     deps = [
         ":gcp_kms_aead",
@@ -252,7 +248,6 @@ cc_library(
     name = "gcp_kms_mac",
     srcs = ["gcp_kms_mac.cc"],
     hdrs = ["gcp_kms_mac.h"],
-    include_prefix = "tink/integration/gcpkms",
     visibility = ["//visibility:public"],
     deps = [
         "//tink/integration/gcpkms/internal:gcp_kms_util",
