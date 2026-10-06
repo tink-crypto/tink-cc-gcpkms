@@ -29,6 +29,7 @@
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/kms/v1/mocks/mock_key_management_connection.h"
 #include "google/cloud/status.h"
+#include "google/cloud/status_or.h"
 #include "tink/util/test_matchers.h"
 
 namespace crypto {
@@ -98,6 +99,16 @@ class FetchKmsPublicKeyTest : public testing::Test {
   std::shared_ptr<MockKeyManagementServiceConnection> mock_connection_;
   std::shared_ptr<KeyManagementServiceClient> kms_client_;
 };
+
+TEST_F(FetchKmsPublicKeyTest, UnspecifiedFormatFails) {
+  EXPECT_CALL(*mock_connection_, GetPublicKey).Times(0);
+  EXPECT_THAT(
+      FetchKmsPublicKey(kKeyName, kms_client_,
+                        kmsV1::PublicKey::PUBLIC_KEY_FORMAT_UNSPECIFIED)
+          .status(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("public_key_format must be specified")));
+}
 
 TEST_F(FetchKmsPublicKeyTest, RpcFails) {
   EXPECT_CALL(*mock_connection_, GetPublicKey)
@@ -201,6 +212,26 @@ TEST_F(FetchKmsPublicKeyTest, Success) {
         return StatusOr<kmsV1::PublicKey>(response);
       });
   EXPECT_THAT(FetchKmsPublicKey(kKeyName, kms_client_), IsOk());
+}
+
+TEST_F(FetchKmsPublicKeyTest, SuccessWithExplicitFormat) {
+  EXPECT_CALL(*mock_connection_, GetPublicKey)
+      .WillOnce([](kmsV1::GetPublicKeyRequest const& request)
+                    -> StatusOr<kmsV1::PublicKey> {
+        EXPECT_EQ(request.public_key_format(),
+                  kmsV1::PublicKey::XWING_RAW_BYTES);
+        kmsV1::PublicKey response;
+        response.set_name(request.name());
+        response.set_algorithm(kmsV1::CryptoKeyVersion::KEM_XWING);
+        response.mutable_public_key()->set_data("xwing public key data");
+        response.mutable_public_key()->mutable_crc32c_checksum()->set_value(
+            static_cast<uint32_t>(
+                absl::ComputeCrc32c(response.public_key().data())));
+        return StatusOr<kmsV1::PublicKey>(response);
+      });
+  EXPECT_THAT(FetchKmsPublicKey(kKeyName, kms_client_,
+                                kmsV1::PublicKey::XWING_RAW_BYTES),
+              IsOk());
 }
 
 }  // namespace

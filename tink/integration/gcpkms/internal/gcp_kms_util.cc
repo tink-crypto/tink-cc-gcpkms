@@ -114,18 +114,23 @@ absl::Status VerifyPublicKeyChecksum(const PublicKey& key) {
 
 absl::StatusOr<PublicKey> FetchKmsPublicKey(
     absl::string_view key_name,
-    absl_nonnull std::shared_ptr<KeyManagementServiceClient> kms_client) {
+    absl_nonnull std::shared_ptr<KeyManagementServiceClient> kms_client,
+    PublicKey::PublicKeyFormat public_key_format) {
+  if (public_key_format == PublicKey::PUBLIC_KEY_FORMAT_UNSPECIFIED) {
+    return absl::InvalidArgumentError("public_key_format must be specified.");
+  }
   GetPublicKeyRequest request;
   request.set_name(key_name);
-  request.set_public_key_format(PublicKey::PEM);
+  request.set_public_key_format(public_key_format);
   google::cloud::StatusOr<PublicKey> response =
       kms_client->GetPublicKey(request);
   // Retry with NIST_PQC if PEM is unsupported, or if PEM succeeded but the
   // algorithm is PQC (we prefer raw bytes for PQC keys).
-  if ((!response.ok() &&
-       absl::StrContains(response.status().message(),
-                         "Only NIST_PQC format is supported")) ||
-      (response.ok() && IsPqcAlgorithm(response->algorithm()))) {
+  if (public_key_format == PublicKey::PEM &&
+      ((!response.ok() &&
+        absl::StrContains(response.status().message(),
+                          "Only NIST_PQC format is supported")) ||
+       (response.ok() && IsPqcAlgorithm(response->algorithm())))) {
     request.set_public_key_format(PublicKey::NIST_PQC);
     response = kms_client->GetPublicKey(request);
   }

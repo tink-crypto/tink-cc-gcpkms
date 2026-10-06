@@ -46,14 +46,17 @@ bool IsPqcAlgorithm(
 absl::Status VerifyPublicKeyChecksum(
     const google::cloud::kms::v1::PublicKey& key);
 
-// Fetches a public key from GCP KMS. Handles PQC algorithm format
-// fallback (PEM -> NIST_PQC), and
-// performs integrity checks: response name match and CRC32C checksum.
+// Fetches a public key from GCP KMS in the specified `public_key_format`
+// (defaulting to PEM). When `public_key_format` is PEM, handles PQC algorithm
+// format fallback (PEM -> NIST_PQC). Performs integrity checks: response name
+// match and CRC32C checksum.
 absl::StatusOr<google::cloud::kms::v1::PublicKey> FetchKmsPublicKey(
     absl::string_view key_name,
     absl_nonnull
     std::shared_ptr<google::cloud::kms_v1::KeyManagementServiceClient>
-        kms_client);
+        kms_client,
+    google::cloud::kms::v1::PublicKey::PublicKeyFormat public_key_format =
+        google::cloud::kms::v1::PublicKey::PEM);
 
 // Validates the format of the given KMS key name.
 //
