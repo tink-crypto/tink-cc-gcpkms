@@ -30,6 +30,7 @@
 #include "google/cloud/status.h"
 #include "google/cloud/status_or.h"
 #include "re2/re2.h"
+#include "tink/hybrid/hpke_parameters.h"
 
 namespace crypto {
 namespace tink {
@@ -45,6 +46,25 @@ using ::google::cloud::kms_v1::KeyManagementServiceClient;
 static constexpr LazyRE2 kKmsKeyNameFormat = {
     "projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+/"
     "cryptoKeyVersions/.*"};
+
+absl::StatusOr<KemAlgorithmInfo> GetKemAlgorithmInfo(
+    HpkeParameters::KemId kem_id) {
+  switch (kem_id) {
+    case HpkeParameters::KemId::kXWing:
+      return KemAlgorithmInfo{CryptoKeyVersion::KEM_XWING,
+                              PublicKey::XWING_RAW_BYTES};
+    case HpkeParameters::KemId::kMlKem768:
+      return KemAlgorithmInfo{CryptoKeyVersion::ML_KEM_768,
+                              PublicKey::NIST_PQC};
+    case HpkeParameters::KemId::kMlKem1024:
+      return KemAlgorithmInfo{CryptoKeyVersion::ML_KEM_1024,
+                              PublicKey::NIST_PQC};
+    default:
+      return absl::Status(absl::StatusCode::kInvalidArgument,
+                          absl::StrCat("Unsupported HPKE KEM algorithm: ",
+                                       static_cast<int>(kem_id)));
+  }
+}
 
 absl::StatusCode ToAbslStatusCode(google::cloud::StatusCode code) {
   switch (code) {

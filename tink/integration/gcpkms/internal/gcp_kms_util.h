@@ -26,12 +26,23 @@
 #include "absl/strings/string_view.h"
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/status.h"
+#include "tink/hybrid/hpke_parameters.h"
 
 namespace crypto {
 namespace tink {
 namespace integration {
 namespace gcpkms {
 namespace internal {
+
+struct KemAlgorithmInfo {
+  google::cloud::kms::v1::CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm;
+  google::cloud::kms::v1::PublicKey::PublicKeyFormat format;
+};
+
+// Returns the Cloud KMS algorithm and public key format corresponding to the
+// given HPKE `kem_id`.
+absl::StatusOr<KemAlgorithmInfo> GetKemAlgorithmInfo(
+    crypto::tink::HpkeParameters::KemId kem_id);
 
 // Converts a Google Cloud StatusCode to an Abseil StatusCode.
 absl::StatusCode ToAbslStatusCode(google::cloud::StatusCode code);

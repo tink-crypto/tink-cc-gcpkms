@@ -30,6 +30,7 @@
 #include "google/cloud/kms/v1/mocks/mock_key_management_connection.h"
 #include "google/cloud/status.h"
 #include "google/cloud/status_or.h"
+#include "tink/hybrid/hpke_parameters.h"
 #include "tink/util/test_matchers.h"
 
 namespace crypto {
@@ -52,6 +53,34 @@ using ::testing::HasSubstr;
 
 constexpr absl::string_view kKeyName =
     "projects/P/locations/L/keyRings/R/cryptoKeys/K/cryptoKeyVersions/1";
+
+TEST(GetKemAlgorithmInfoTest, SupportedKemAlgorithmsSucceed) {
+  absl::StatusOr<KemAlgorithmInfo> xwing_info =
+      GetKemAlgorithmInfo(HpkeParameters::KemId::kXWing);
+  ASSERT_THAT(xwing_info, IsOk());
+  EXPECT_EQ(xwing_info->algorithm, kmsV1::CryptoKeyVersion::KEM_XWING);
+  EXPECT_EQ(xwing_info->format, kmsV1::PublicKey::XWING_RAW_BYTES);
+
+  absl::StatusOr<KemAlgorithmInfo> mlkem768_info =
+      GetKemAlgorithmInfo(HpkeParameters::KemId::kMlKem768);
+  ASSERT_THAT(mlkem768_info, IsOk());
+  EXPECT_EQ(mlkem768_info->algorithm, kmsV1::CryptoKeyVersion::ML_KEM_768);
+  EXPECT_EQ(mlkem768_info->format, kmsV1::PublicKey::NIST_PQC);
+
+  absl::StatusOr<KemAlgorithmInfo> mlkem1024_info =
+      GetKemAlgorithmInfo(HpkeParameters::KemId::kMlKem1024);
+  ASSERT_THAT(mlkem1024_info, IsOk());
+  EXPECT_EQ(mlkem1024_info->algorithm, kmsV1::CryptoKeyVersion::ML_KEM_1024);
+  EXPECT_EQ(mlkem1024_info->format, kmsV1::PublicKey::NIST_PQC);
+}
+
+TEST(GetKemAlgorithmInfoTest, UnsupportedKemAlgorithmFails) {
+  EXPECT_THAT(
+      GetKemAlgorithmInfo(HpkeParameters::KemId::kDhkemX25519HkdfSha256)
+          .status(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("Unsupported HPKE KEM algorithm")));
+}
 
 TEST(GcpKmsStatusUtilTest, ConvertsGoogleCloudStatusCodeToAbslStatusCode) {
   EXPECT_EQ(ToAbslStatusCode(StatusCode::kOk), absl::StatusCode::kOk);
