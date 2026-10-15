@@ -21,7 +21,6 @@
 #include <sstream>
 #include <string>
 
-#include "absl/flags/parse.h"
 #include "absl/flags/flag.h"
 #include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
@@ -33,6 +32,7 @@
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "google/cloud/kms/v1/key_management_connection.h"
 #include "google/cloud/options.h"
+#include "absl/flags/parse.h"
 #include "tink/integration/gcpkms/gcp_kms_mac.h"
 #include "tink/mac.h"
 
