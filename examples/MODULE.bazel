@@ -71,7 +71,7 @@ single_version_override(
     patches = [
         "//:patches/c-ares_bazel9.patch",
     ],
-    version = "1.34.6",
+    version = "1.34.6.bcr.3",
 )
 
 single_version_override(
