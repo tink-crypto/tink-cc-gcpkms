@@ -3,11 +3,11 @@
 # It also disables layering_check for grpc_cc_library to fix macOS module compilation errors.
 --- a/bazel/grpc_build_system.bzl
 +++ b/bazel/grpc_build_system.bzl
-@@ -166,2 +166,3 @@
+@@ -170,2 +170,3 @@
      cc_library(
          name = name,
 +        features = ["-layering_check"],
-@@ -189,5 +190,3 @@
+@@ -193,5 +194,3 @@
          includes = [
              include_prefix + "include",
 -            include_prefix + "src/core/ext/upb-gen",  # Once upb code-gen issue is resolved, remove this.

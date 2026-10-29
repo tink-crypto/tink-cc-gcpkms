@@ -45,17 +45,16 @@ bazel_dep(
 )
 bazel_dep(
     name = "grpc",
-    version = "1.81.1",
+    version = "1.85.0",
 )
 single_version_override(
     module_name = "grpc",
     patch_strip = 1,
     patches = [
-        "//tink/integration/gcpkms:patches/grpc_address_sorting_fix.patch",
         "//tink/integration/gcpkms:patches/grpc_xxhash_fix.patch",
         "//tink/integration/gcpkms:patches/grpc_build_system_fix.patch",
     ],
-    version = "1.81.1",
+    version = "1.85.0",
 )
 
 single_version_override(
