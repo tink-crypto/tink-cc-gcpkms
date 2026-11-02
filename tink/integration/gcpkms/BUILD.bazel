@@ -357,3 +357,51 @@ cc_test(
         "@tink_cc//tink/util:test_matchers",
     ],
 )
+
+cc_library(
+    name = "gcp_kms_hpke_decrypt",
+    srcs = ["gcp_kms_hpke_decrypt.cc"],
+    hdrs = ["gcp_kms_hpke_decrypt.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tink/integration/gcpkms/internal:gcp_kms_util",
+        "@abseil-cpp//absl/base:nullability",
+        "@abseil-cpp//absl/crc:crc32c",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:string_view",
+        "@boringssl//:crypto",
+        "@google_cloud_cpp//:common",
+        "@google_cloud_cpp//:kms",
+        "@tink_cc//tink:hybrid_decrypt",
+        "@tink_cc//tink:secret_data",
+        "@tink_cc//tink/hybrid:hpke_parameters",
+        "@tink_cc//tink/util:secret_data",
+    ],
+)
+
+cc_test(
+    name = "gcp_kms_hpke_decrypt_test",
+    srcs = ["gcp_kms_hpke_decrypt_test.cc"],
+    deps = [
+        ":gcp_kms_hpke_decrypt",
+        ":gcp_kms_hpke_encrypt",
+        "@abseil-cpp//absl/crc:crc32c",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:status_matchers",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:string_view",
+        "@boringssl//:crypto",
+        "@google_cloud_cpp//:common",
+        "@google_cloud_cpp//:kms",
+        "@google_cloud_cpp//:kms_mocks",
+        "@googletest//:gtest_main",
+        "@tink_cc//tink:hybrid_decrypt",
+        "@tink_cc//tink:hybrid_encrypt",
+        "@tink_cc//tink/hybrid:config_2026",
+        "@tink_cc//tink/hybrid:hpke_parameters",
+        "@tink_cc//tink/util:test_util",
+    ],
+)

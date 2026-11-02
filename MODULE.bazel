@@ -73,9 +73,8 @@ single_version_override(
         "//tink/integration/gcpkms:patches/google_cloud_cpp.patch",
         "//tink/integration/gcpkms:patches/google_cloud_cpp_gapic.patch",
         "//tink/integration/gcpkms:patches/google_cloud_cpp_cloud.patch",
-        "//tink/integration/gcpkms:patches/google_cloud_cpp_capture_build_info.patch",
     ],
-    version = "3.0.0-rc1",
+    version = "3.6.0",
 )
 
 bazel_dep(
@@ -84,11 +83,11 @@ bazel_dep(
 )
 bazel_dep(
     name = "google_cloud_cpp",
-    version = "3.0.0-rc1",
+    version = "3.6.0",
 )
 bazel_dep(
     name = "boringssl",
-    version = "0.20260813.0",
+    version = "0.20260929.0",
 )
 bazel_dep(
     name = "re2",
