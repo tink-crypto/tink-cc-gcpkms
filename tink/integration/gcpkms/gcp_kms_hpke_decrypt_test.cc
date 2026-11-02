@@ -38,7 +38,6 @@
 #include "openssl/hpke.h"
 #include "openssl/mlkem.h"
 #include "openssl/xwing.h"
-#include "tink/hybrid/config_2026.h"
 #include "tink/hybrid/hpke_parameters.h"
 #include "tink/hybrid_decrypt.h"
 #include "tink/hybrid_encrypt.h"
@@ -79,8 +78,6 @@ constexpr absl::string_view kKeyNameCrcError =
 
 class TestGcpKmsHybridDecrypt : public testing::Test {
  public:
-  static void SetUpTestSuite() { (void)ConfigHybrid2026(); }
-
   void SetUp() override {
     mock_connection_ = std::make_shared<MockKeyManagementServiceConnection>();
     kms_client_ =
@@ -189,7 +186,6 @@ class TestGcpKmsHybridDecrypt : public testing::Test {
               }
 
               kmsV1::DecapsulateResponse response;
-              response.set_name(request.name());
               response.set_verified_ciphertext_crc32c(true);
 
               std::string shared_secret;

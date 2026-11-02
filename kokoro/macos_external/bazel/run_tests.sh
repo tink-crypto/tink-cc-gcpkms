@@ -47,6 +47,8 @@ if [[ "${IS_KOKORO}" == "true" ]]; then
   MANUAL_TARGETS+=("//tink/integration/gcpkms:gcp_kms_mac_integration_test")
   MANUAL_TARGETS+=(
     "//tink/integration/gcpkms:gcp_kms_public_key_sign_verify_integration_test")
+  MANUAL_TARGETS+=(
+    "//tink/integration/gcpkms:gcp_kms_hpke_encrypt_decrypt_integration_test")
 fi
 readonly MANUAL_TARGETS
 

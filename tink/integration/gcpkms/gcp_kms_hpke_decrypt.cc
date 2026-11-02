@@ -125,7 +125,7 @@ absl::StatusOr<SecretData> DecapsulateUsingCloudKms(
                         absl::StrCat("GCP KMS Decapsulate failed: ",
                                      response.status().message()));
   }
-  if (response->name() != key_name) {
+  if (!response->name().empty() && response->name() != key_name) {
     return absl::Status(
         absl::StatusCode::kInternal,
         absl::StrCat("The key name in the response (", response->name(),

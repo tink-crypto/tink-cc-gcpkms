@@ -124,6 +124,9 @@ CreateGcpKmsHybridEncryptWithNoRpcs(const HpkePublicKey& key) {
   if (!kem_info.ok()) {
     return kem_info.status();
   }
+  // Ensure HPKE proto key serialization is registered before building the
+  // keyset handle.
+  (void)ConfigHybrid2026();
   KeysetHandleBuilder builder;
   builder.AddEntry(KeysetHandleBuilder::Entry::CreateFromCopyableKey(
       key, KeyStatus::kEnabled, /*is_primary=*/true));
