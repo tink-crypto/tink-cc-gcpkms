@@ -1,0 +1,48 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+cc_binary(
+    name = "hpke_cli",
+    srcs = ["hpke_cli.cc"],
+    deps = [
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log:absl_check",
+        "@abseil-cpp//absl/log:absl_log",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@google_cloud_cpp//:common",
+        "@google_cloud_cpp//:kms",
+        "@tink_cc//tink:hybrid_decrypt",
+        "@tink_cc//tink:hybrid_encrypt",
+        "@tink_cc//tink/hybrid:hpke_parameters",
+        "@tink_cc_gcpkms//tink/integration/gcpkms:gcp_kms_hpke_decrypt",
+        "@tink_cc_gcpkms//tink/integration/gcpkms:gcp_kms_hpke_encrypt",
+    ],
+)
+
+sh_test(
+    name = "hpke_cli_test",
+    size = "small",
+    srcs = ["hpke_cli_test.sh"],
+    args = [
+        "$(rootpath :hpke_cli)",
+        # Change this to your KEM CryptoKeyVersion.
+        "projects/tink-test-infrastructure/locations/global/keyRings/unit-and-integration-testing/cryptoKeys/xwing-key/cryptoKeyVersions/1",
+        "$(rootpath //testdata/gcp:credential.json)",
+    ],
+    data = [
+        ":hpke_cli",
+        # Change this to your credential.
+        "//testdata/gcp:credential.json",
+    ],
+    tags = [
+        "manual",
+        "requires-network",
+    ],
+)
