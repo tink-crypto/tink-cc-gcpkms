@@ -18,10 +18,14 @@
 #define TINK_INTEGRATION_GCPKMS_GCP_KMS_PUBLIC_KEY_VERIFY_H_
 
 #include <memory>
+#include <string>
 
 #include "absl/base/nullability.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "google/cloud/kms/v1/key_management_client.h"
+#include "tink/keyset_handle.h"
 #include "tink/partial_key_access_token.h"
 #include "tink/public_key_verify.h"
 #include "tink/signature/signature_public_key.h"
@@ -79,6 +83,27 @@ CreateSignaturePublicKeyWithNoRpcs(
 // which does not call KMS and instead takes in a public key directly.
 absl::StatusOr<std::unique_ptr<PublicKeyVerify>>
 CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key);
+
+// A public key returned by Cloud KMS FetchVerificationKeys.
+struct GcpKmsVerificationKey {
+  std::string public_key_pem;
+  google::cloud::kms::v1::CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm;
+};
+
+// Creates a public KeysetHandle from the (PEM, algorithm) pairs returned by
+// Cloud KMS FetchVerificationKeys, without calling KMS. Keys are imported with
+// no output prefix and DER signature encoding for ECDSA; the first key is the
+// primary. Callers unpacking FetchVerificationKeysResponse should paginate
+// next_page_token, verify each key's crc32c_checksum, and order
+// `verification_keys` newest-first so the newest version is primary.
+//
+// Accepts the algorithms of `CreateSignaturePublicKeyWithNoRpcs` except
+// SLH-DSA. Any unsupported or invalid key fails the call, so callers migrating
+// off an unsupported algorithm must filter those versions out first.
+//
+// WARNING: This API is in preview and may change in the future.
+absl::StatusOr<KeysetHandle> CreateSignaturePublicKeysetHandleWithNoRpcs(
+    absl::Span<const GcpKmsVerificationKey> verification_keys);
 
 }  // namespace gcpkms
 }  // namespace integration

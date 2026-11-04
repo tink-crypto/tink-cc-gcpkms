@@ -31,6 +31,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "google/cloud/kms/v1/key_management_client.h"
 #include "tink/integration/gcpkms/internal/gcp_kms_util.h"
 #include "tink/key.h"
@@ -44,6 +45,8 @@
 #include "tink/signature/config_2026.h"
 #include "tink/signature/ecdsa_parameters.h"
 #include "tink/signature/ecdsa_public_key.h"
+#include "tink/signature/ed25519_parameters.h"
+#include "tink/signature/ed25519_public_key.h"
 #include "tink/signature/key_gen_config_2026.h"
 #include "tink/signature/ml_dsa_parameters.h"
 #include "tink/signature/ml_dsa_public_key.h"
@@ -82,6 +85,7 @@ bool IsValidAlgorithm(
     case CryptoKeyVersion::RSA_SIGN_PKCS1_4096_SHA512:
     case CryptoKeyVersion::EC_SIGN_P256_SHA256:
     case CryptoKeyVersion::EC_SIGN_P384_SHA384:
+    case CryptoKeyVersion::EC_SIGN_ED25519:
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_44:
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
     case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
@@ -325,9 +329,11 @@ absl::StatusOr<PublicKey> GetGcpKmsPublicKey(
 }
 
 using KeyParams =
-    std::variant<EcdsaParameters, RsaSsaPkcs1Parameters, RsaSsaPssParameters>;
+    std::variant<EcdsaParameters, Ed25519Parameters, MlDsaParameters,
+                 RsaSsaPkcs1Parameters, RsaSsaPssParameters>;
 using TinkPublicKey =
-    std::variant<EcdsaPublicKey, RsaSsaPkcs1PublicKey, RsaSsaPssPublicKey>;
+    std::variant<EcdsaPublicKey, Ed25519PublicKey, MlDsaPublicKey,
+                 RsaSsaPkcs1PublicKey, RsaSsaPssPublicKey>;
 
 absl::StatusOr<KeyParams> GetKeyParams(
     const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm) {
@@ -346,6 +352,8 @@ absl::StatusOr<KeyParams> GetKeyParams(
           .SetHashType(EcdsaParameters::HashType::kSha384)
           .SetVariant(EcdsaParameters::Variant::kNoPrefix)
           .Build();
+    case CryptoKeyVersion::EC_SIGN_ED25519:
+      return Ed25519Parameters::Create(Ed25519Parameters::Variant::kNoPrefix);
     case CryptoKeyVersion::RSA_SIGN_PSS_2048_SHA256:
       return RsaSsaPssParameters::Builder()
           .SetMgf1HashType(RsaSsaPssParameters::HashType::kSha256)
@@ -402,18 +410,28 @@ absl::StatusOr<KeyParams> GetKeyParams(
           .SetModulusSizeInBits(4096)
           .SetVariant(RsaSsaPkcs1Parameters::Variant::kNoPrefix)
           .Build();
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_44_EXTERNAL_MU:
+      return MlDsaParameters::Create(MlDsaParameters::Instance::kMlDsa44,
+                                     MlDsaParameters::Variant::kNoPrefix);
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_65_EXTERNAL_MU:
+      return MlDsaParameters::Create(MlDsaParameters::Instance::kMlDsa65,
+                                     MlDsaParameters::Variant::kNoPrefix);
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87:
+    case CryptoKeyVersion::PQ_SIGN_ML_DSA_87_EXTERNAL_MU:
+      return MlDsaParameters::Create(MlDsaParameters::Instance::kMlDsa87,
+                                     MlDsaParameters::Variant::kNoPrefix);
     default:
-      return absl::InternalError(absl::StrCat(
-          "The given algorithm ",
-          CryptoKeyVersion::CryptoKeyVersionAlgorithm_Name(algorithm),
-          " is not supported for verification."));
+      return absl::InvalidArgumentError(absl::StrCat(
+          "Unsupported algorithm: ",
+          CryptoKeyVersion::CryptoKeyVersionAlgorithm_Name(algorithm)));
   }
 }
 
-// Converts the given PEM key into a Tink Keyset Handle.
-absl::StatusOr<KeysetHandle> GetTinkKeySetHandleFromPemKey(
+absl::StatusOr<KeysetHandleBuilder::Entry> CreatePemKeysetEntry(
     const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
-    absl::string_view pem_key) {
+    absl::string_view pem_key, bool is_primary) {
   absl::StatusOr<KeyParams> key_params = GetKeyParams(algorithm);
   if (!key_params.ok()) {
     return key_params.status();
@@ -424,6 +442,16 @@ absl::StatusOr<KeysetHandle> GetTinkKeySetHandleFromPemKey(
           [&pem_key](
               const EcdsaParameters& params) -> absl::StatusOr<TinkPublicKey> {
             return tink_pem::PemToEcdsaPublicKey(pem_key, params,
+                                                 GetPartialKeyAccess());
+          },
+          [&pem_key](const Ed25519Parameters& params)
+              -> absl::StatusOr<TinkPublicKey> {
+            return tink_pem::PemToEd25519PublicKey(pem_key, params,
+                                                   GetPartialKeyAccess());
+          },
+          [&pem_key](
+              const MlDsaParameters& params) -> absl::StatusOr<TinkPublicKey> {
+            return tink_pem::PemToMlDsaPublicKey(pem_key, params,
                                                  GetPartialKeyAccess());
           },
           [&pem_key](const RsaSsaPkcs1Parameters& params)
@@ -440,15 +468,26 @@ absl::StatusOr<KeysetHandle> GetTinkKeySetHandleFromPemKey(
   if (!public_key.ok()) {
     return public_key.status();
   }
-  KeysetHandleBuilder builder;
-  std::visit(
-      [&builder](const auto& key) {
-        builder.AddEntry(KeysetHandleBuilder::Entry::CreateFromCopyableKey(
-            key, KeyStatus::kEnabled,
-            /*is_primary=*/true));
+  return std::visit(
+      [is_primary](auto& key) {
+        return KeysetHandleBuilder::Entry::CreateFromCopyableKey(
+            std::move(key), KeyStatus::kEnabled, is_primary);
       },
       *public_key);
-  return builder.Build(KeyGenConfigSignature2026());
+}
+
+// Converts the given PEM key into a Tink Keyset Handle.
+absl::StatusOr<KeysetHandle> GetTinkKeySetHandleFromPemKey(
+    const CryptoKeyVersion::CryptoKeyVersionAlgorithm algorithm,
+    absl::string_view pem_key) {
+  absl::StatusOr<KeysetHandleBuilder::Entry> entry =
+      CreatePemKeysetEntry(algorithm, pem_key, true);
+  if (!entry.ok()) {
+    return entry.status();
+  }
+  return KeysetHandleBuilder()
+      .AddEntry(*std::move(entry))
+      .Build(KeyGenConfigSignature2026());
 }
 
 // Uses the right internal verifier based on the KMS `algorithm`, and converts
@@ -581,6 +620,25 @@ CreateGcpKmsPublicKeyVerifyWithNoRpcs(const SignaturePublicKey& key) {
     return verifier.status();
   }
   return std::make_unique<GcpKmsPublicKeyVerify>(*std::move(verifier));
+}
+
+absl::StatusOr<KeysetHandle> CreateSignaturePublicKeysetHandleWithNoRpcs(
+    absl::Span<const GcpKmsVerificationKey> verification_keys) {
+  if (verification_keys.empty()) {
+    return absl::InvalidArgumentError(
+        "At least one verification key is required.");
+  }
+  KeysetHandleBuilder builder;
+  for (size_t i = 0; i < verification_keys.size(); ++i) {
+    absl::StatusOr<KeysetHandleBuilder::Entry> entry =
+        CreatePemKeysetEntry(verification_keys[i].algorithm,
+                             verification_keys[i].public_key_pem, i == 0);
+    if (!entry.ok()) {
+      return entry.status();
+    }
+    builder.AddEntry(*std::move(entry));
+  }
+  return builder.Build(KeyGenConfigSignature2026());
 }
 
 }  // namespace gcpkms
