@@ -20,7 +20,9 @@ cc_binary(
         "@google_cloud_cpp//:kms",
         "@tink_cc//tink:hybrid_decrypt",
         "@tink_cc//tink:hybrid_encrypt",
+        "@tink_cc//tink:partial_key_access",
         "@tink_cc//tink/hybrid:hpke_parameters",
+        "@tink_cc//tink/hybrid:hpke_public_key",
         "@tink_cc_gcpkms//tink/integration/gcpkms:gcp_kms_hpke_decrypt",
         "@tink_cc_gcpkms//tink/integration/gcpkms:gcp_kms_hpke_encrypt",
     ],
@@ -35,11 +37,14 @@ sh_test(
         # Change this to your KEM CryptoKeyVersion.
         "projects/tink-test-infrastructure/locations/global/keyRings/unit-and-integration-testing/cryptoKeys/xwing-key/cryptoKeyVersions/1",
         "$(rootpath //testdata/gcp:credential.json)",
+        "$(rootpath //testdata/gcp:xwing_key_public.bin)",
     ],
     data = [
         ":hpke_cli",
         # Change this to your credential.
         "//testdata/gcp:credential.json",
+        # Change this to your public key.
+        "//testdata/gcp:xwing_key_public.bin",
     ],
     tags = [
         "manual",

@@ -34,15 +34,19 @@
 #include "google/cloud/options.h"
 #include "absl/flags/parse.h"
 #include "tink/hybrid/hpke_parameters.h"
+#include "tink/hybrid/hpke_public_key.h"
 #include "tink/hybrid_decrypt.h"
 #include "tink/hybrid_encrypt.h"
 #include "tink/integration/gcpkms/gcp_kms_hpke_decrypt.h"
 #include "tink/integration/gcpkms/gcp_kms_hpke_encrypt.h"
+#include "tink/partial_key_access.h"
 
-ABSL_FLAG(std::string, mode, "", "Mode of operation {encrypt|decrypt}");
+ABSL_FLAG(std::string, mode, "",
+          "Mode of operation {encrypt|encrypt-offline|decrypt}");
 ABSL_FLAG(std::string, key_name, "",
           "Resource name of the KMS CryptoKeyVersion to use, in the form "
-          "projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*");
+          "projects/*/locations/*/keyRings/*/cryptoKeys/*/cryptoKeyVersions/*; "
+          "required when mode is encrypt or decrypt");
 ABSL_FLAG(std::string, input_filename, "", "Input file name");
 ABSL_FLAG(std::string, output_filename, "", "Output file name");
 ABSL_FLAG(std::string, credentials, "",
@@ -50,24 +54,32 @@ ABSL_FLAG(std::string, credentials, "",
           "specified, the default credentials are used");
 ABSL_FLAG(std::string, context_info, "",
           "Optional context info for HPKE encryption or decryption");
+ABSL_FLAG(
+    std::string, public_key_filename, "",
+    "Public key file name: holds raw public key bytes previously fetched from "
+    "Cloud KMS; required when mode is encrypt-offline");
 ABSL_FLAG(std::string, kem, "X_WING",
           "HPKE KEM algorithm {X_WING|ML_KEM_768|ML_KEM_1024}");
-ABSL_FLAG(std::string, kdf, "HKDF_SHA256",
-          "HPKE KDF algorithm {HKDF_SHA256}");
+ABSL_FLAG(std::string, kdf, "HKDF_SHA256", "HPKE KDF algorithm {HKDF_SHA256}");
 ABSL_FLAG(std::string, aead, "AES_256_GCM",
           "HPKE AEAD algorithm {AES_128_GCM|AES_256_GCM|CHACHA20_POLY1305}");
 
 namespace {
 
+using ::crypto::tink::GetPartialKeyAccess;
 using ::crypto::tink::HpkeParameters;
+using ::crypto::tink::HpkePublicKey;
 using ::crypto::tink::HybridDecrypt;
 using ::crypto::tink::HybridEncrypt;
 using ::crypto::tink::integration::gcpkms::CreateGcpKmsHybridDecrypt;
 using ::crypto::tink::integration::gcpkms::CreateGcpKmsHybridEncrypt;
+using ::crypto::tink::integration::gcpkms::CreateGcpKmsHybridEncryptWithNoRpcs;
+using ::crypto::tink::integration::gcpkms::CreateHpkePublicKeyWithNoRpcs;
 using ::google::cloud::kms_v1::KeyManagementServiceClient;
 using ::google::cloud::kms_v1::MakeKeyManagementServiceConnection;
 
 constexpr absl::string_view kEncrypt = "encrypt";
+constexpr absl::string_view kEncryptOffline = "encrypt-offline";
 constexpr absl::string_view kDecrypt = "decrypt";
 
 absl::StatusOr<HpkeParameters::KemId> ParseKemId(absl::string_view kem) {
@@ -131,16 +143,21 @@ absl::StatusOr<HpkeParameters> BuildHpkeParameters(absl::string_view kem,
 
 void ValidateParams() {
   // [START_EXCLUDE]
-  ABSL_CHECK(absl::GetFlag(FLAGS_mode) == kEncrypt ||
-             absl::GetFlag(FLAGS_mode) == kDecrypt)
-      << "Invalid mode " << absl::GetFlag(FLAGS_mode)
-      << "; must be `encrypt` or `decrypt`";
-  ABSL_CHECK(!absl::GetFlag(FLAGS_key_name).empty())
-      << "Key name must be specified";
+  std::string mode = absl::GetFlag(FLAGS_mode);
+  ABSL_CHECK(mode == kEncrypt || mode == kEncryptOffline || mode == kDecrypt)
+      << "Invalid mode " << mode
+      << "; must be `encrypt`, `encrypt-offline`, or `decrypt`";
   ABSL_CHECK(!absl::GetFlag(FLAGS_input_filename).empty())
       << "Input file must be specified";
   ABSL_CHECK(!absl::GetFlag(FLAGS_output_filename).empty())
       << "Output file must be specified";
+  if (mode == kEncryptOffline) {
+    ABSL_CHECK(!absl::GetFlag(FLAGS_public_key_filename).empty())
+        << "Public key file must be specified for encrypt-offline mode";
+  } else {
+    ABSL_CHECK(!absl::GetFlag(FLAGS_key_name).empty())
+        << "Key name must be specified for mode " << mode;
+  }
   ABSL_CHECK_OK(ParseKemId(absl::GetFlag(FLAGS_kem)).status());
   ABSL_CHECK_OK(ParseKdfId(absl::GetFlag(FLAGS_kdf)).status());
   ABSL_CHECK_OK(ParseAeadId(absl::GetFlag(FLAGS_aead)).status());
@@ -185,7 +202,34 @@ void KmsHpkeCli(absl::string_view mode, absl::string_view key_name,
                 absl::string_view input_filename,
                 absl::string_view output_filename,
                 absl::string_view credentials, absl::string_view context_info,
+                absl::string_view public_key_filename,
                 const HpkeParameters& hpke_params) {
+  absl::StatusOr<std::string> input_data = ReadFile(input_filename);
+  ABSL_CHECK_OK(input_data.status());
+
+  if (mode == kEncryptOffline) {
+    // The encryptor is created from pre-fetched raw public key bytes and HPKE
+    // parameters, without making any calls to Cloud KMS.
+    absl::StatusOr<std::string> public_key_bytes =
+        ReadFile(public_key_filename);
+    ABSL_CHECK_OK(public_key_bytes.status());
+
+    absl::StatusOr<HpkePublicKey> hpke_public_key =
+        CreateHpkePublicKeyWithNoRpcs(*public_key_bytes, hpke_params,
+                                      GetPartialKeyAccess());
+    ABSL_CHECK_OK(hpke_public_key.status());
+
+    absl::StatusOr<std::unique_ptr<HybridEncrypt>> hybrid_encrypt =
+        CreateGcpKmsHybridEncryptWithNoRpcs(*hpke_public_key);
+    ABSL_CHECK_OK(hybrid_encrypt.status());
+
+    absl::StatusOr<std::string> ciphertext =
+        (*hybrid_encrypt)->Encrypt(*input_data, context_info);
+    ABSL_CHECK_OK(ciphertext.status());
+    ABSL_CHECK_OK(WriteToFile(*ciphertext, output_filename));
+    return;
+  }
+
   // Build a Cloud KMS client, optionally using a service account credentials
   // file. When no file is given, Application Default Credentials are used.
   google::cloud::Options options;
@@ -197,9 +241,6 @@ void KmsHpkeCli(absl::string_view mode, absl::string_view key_name,
   }
   auto kms_client = std::make_shared<KeyManagementServiceClient>(
       MakeKeyManagementServiceConnection(options));
-
-  absl::StatusOr<std::string> input_data = ReadFile(input_filename);
-  ABSL_CHECK_OK(input_data.status());
 
   if (mode == kEncrypt) {
     // Encryption fetches the public key from Cloud KMS and performs HPKE
@@ -237,6 +278,7 @@ int main(int argc, char** argv) {
   std::string output_filename = absl::GetFlag(FLAGS_output_filename);
   std::string credentials = absl::GetFlag(FLAGS_credentials);
   std::string context_info = absl::GetFlag(FLAGS_context_info);
+  std::string public_key_filename = absl::GetFlag(FLAGS_public_key_filename);
   std::string kem = absl::GetFlag(FLAGS_kem);
   std::string kdf = absl::GetFlag(FLAGS_kdf);
   std::string aead = absl::GetFlag(FLAGS_aead);
@@ -245,18 +287,24 @@ int main(int argc, char** argv) {
       BuildHpkeParameters(kem, kdf, aead);
   ABSL_CHECK_OK(hpke_params.status());
 
-  ABSL_LOG(INFO) << "Using key " << key_name << " with "
-                 << (credentials.empty()
-                         ? "default credentials"
-                         : absl::StrCat("credentials file ", credentials))
-                 << " to HPKE " << mode << " file " << input_filename
-                 << " with context info '" << context_info << "'." << '\n';
+  if (mode == kEncryptOffline) {
+    ABSL_LOG(INFO) << "Using pre-fetched public key file "
+                   << public_key_filename << " to HPKE encrypt file "
+                   << input_filename << " with context info '" << context_info;
+  } else {
+    ABSL_LOG(INFO) << "Using key " << key_name << " with "
+                   << (credentials.empty()
+                           ? "default credentials"
+                           : absl::StrCat("credentials file ", credentials))
+                   << " to HPKE " << mode << " file " << input_filename
+                   << " with context info '" << context_info;
+  }
   ABSL_LOG(INFO) << "The resulting output will be written to "
-                 << output_filename << '\n';
+                 << output_filename;
 
-  tink_cc_gcpkms_examples::KmsHpkeCli(mode, key_name, input_filename,
-                                      output_filename, credentials,
-                                      context_info, *hpke_params);
+  tink_cc_gcpkms_examples::KmsHpkeCli(
+      mode, key_name, input_filename, output_filename, credentials,
+      context_info, public_key_filename, *hpke_params);
   return 0;
 }
 // [END hpke-example]

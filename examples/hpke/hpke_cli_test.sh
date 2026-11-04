@@ -21,6 +21,7 @@ set -euo pipefail
 readonly CLI="$1"
 readonly KEY_NAME="$2"
 readonly CRED_FILE="$3"
+readonly PUB_KEY_FILE="$4"
 readonly DATA_FILE="${TEST_TMPDIR}/example_data.txt"
 readonly CIPHERTEXT_FILE="${TEST_TMPDIR}/example_ciphertext.bin"
 readonly DECRYPTED_FILE="${TEST_TMPDIR}/example_decrypted.txt"
@@ -288,5 +289,59 @@ if (( TEST_STATUS > 0 )); then
   echo "+++ Decryption with mismatched KEM failed as expected."
 else
   echo "--- Decryption with mismatched KEM succeeded but expected to fail."
+  exit 1
+fi
+
+#############################################################################
+#### Test encrypting offline without KMS RPCs and decrypting with KMS
+TEST_NAME="test_encrypt_offline_succeeds"
+echo "+++ Starting test ${TEST_NAME}..."
+
+test_command "${CLI}" --mode=encrypt-offline \
+  --public_key_filename="${PUB_KEY_FILE}" \
+  --input_filename="${DATA_FILE}" \
+  --output_filename="${CIPHERTEXT_FILE}" \
+  --context_info="${CONTEXT_INFO}"
+
+if (( TEST_STATUS == 0 )); then
+  echo "+++ Offline encryption successful."
+else
+  echo "--- Offline encryption failed."
+  exit 1
+fi
+
+test_command "${CLI}" --mode=decrypt --key_name="${KEY_NAME}" \
+  --credentials="${CRED_FILE}" --input_filename="${CIPHERTEXT_FILE}" \
+  --output_filename="${DECRYPTED_FILE}" \
+  --context_info="${CONTEXT_INFO}"
+
+if (( TEST_STATUS == 0 )); then
+  echo "+++ Decryption of offline-encrypted ciphertext successful."
+else
+  echo "--- Decryption of offline-encrypted ciphertext failed."
+  exit 1
+fi
+
+if cmp -s "${DATA_FILE}" "${DECRYPTED_FILE}"; then
+  echo "+++ Success: file content is the same after offline encryption and decryption."
+else
+  echo "--- Failure: file content is not the same after offline encryption and decryption."
+  exit 1
+fi
+
+#############################################################################
+#### Test that offline encryption fails with invalid public key bytes
+TEST_NAME="test_encrypt_offline_fails_with_invalid_public_key"
+echo "+++ Starting test ${TEST_NAME}..."
+
+test_command "${CLI}" --mode=encrypt-offline \
+  --public_key_filename="${DATA_FILE}" \
+  --input_filename="${DATA_FILE}" \
+  --output_filename="${CIPHERTEXT_FILE}"
+
+if (( TEST_STATUS > 0 )); then
+  echo "+++ Offline encryption with invalid public key failed as expected."
+else
+  echo "--- Offline encryption with invalid public key succeeded but expected to fail."
   exit 1
 fi
